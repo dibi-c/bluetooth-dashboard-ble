@@ -28,23 +28,40 @@
         }
 
         .status-box {
-            background-color: #d1fae5; /* green-100 */
-            color: #059669; /* green-600 */
             border-radius: 0.75rem;
             padding: 1rem;
         }
 
         /* Grid untuk sel tegangan */
         .cell-grid {
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            grid-template-columns: repeat(4, 1fr); 
         }
 
         /* Styling spesifik untuk kartu kelistrikan */
-        .card-voltage { background-color: #bfdbfe; color: #1e40af; } /* blue-200 / blue-800 */
-        .card-current { background-color: #fecaca; color: #b91c1c; } /* red-200 / red-800 */
-        .card-delta { background-color: #a7f3d0; color: #065f46; } /* green-200 / green-800 */
-        .card-tte { background-color: #e9d5ff; color: #6b21a8; } /* purple-200 / purple-800 */
+        .card-voltage { background-color: #bfdbfe; color: #1e40af; } 
+        .card-current { background-color: #fecaca; color: #b91c1c; } 
+        .card-power { background-color: #fffbeb; color: #b45309; } 
+        .card-cap-rem { background-color: #e9d5ff; color: #6b21a8; } 
+        .card-cap-used { background-color: #a7f3d0; color: #065f46; } 
+        .card-delta { background-color: #fce7f3; color: #be185d; } 
+        
+        /* Styling minimalis untuk koneksi */
+        .minimal-connect-btn {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem; /* text-sm */
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+        /* Style untuk tombol periode aktif */
+        .period-active {
+            @apply bg-primary text-white shadow-md;
+        }
+        .period-button {
+            @apply p-2 rounded-lg text-sm font-medium transition duration-150 hover:bg-gray-200;
+        }
     </style>
+    <!-- Memuat Chart.js untuk grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body class="light-bg min-h-screen p-4 md:p-8 text-gray-800">
     <script>
@@ -60,25 +77,26 @@
             }
         }
     </script>
-    <div class="max-w-5xl mx-auto">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-extrabold text-gray-900 mb-1">Dasbor BMS Real-Time</h1>
-            <p id="status-message" class="text-md text-gray-500">Data dari Bluetooth LE</p>
+    <div class="max-w-6xl mx-auto">
+        <!-- Minimalis: Bar Status & Koneksi -->
+        <header class="flex justify-between items-center mb-6 p-3 rounded-lg bg-white shadow-md border-b">
+            <div id="status-display" class="text-sm font-medium text-gray-600">
+                <span id="status-message">Menunggu Koneksi Bluetooth...</span>
+                <span id="device-info" class="text-xs text-gray-400 block italic"></span>
+            </div>
+            <div class="flex space-x-2">
+                <button id="connect-button" onclick="connectBluetooth()" class="minimal-connect-btn bg-primary text-white hover:bg-blue-600 transition disabled:opacity-50">
+                    <i class="fas fa-bluetooth-b"></i> Sambung
+                </button>
+                <button id="disconnect-button" onclick="disconnectBluetooth()" class="minimal-connect-btn bg-gray-300 text-gray-700 hover:bg-gray-400 transition disabled:opacity-50" disabled>
+                    Putus
+                </button>
+            </div>
         </header>
-
-        <!-- Bagian Kontrol Bluetooth -->
-        <section class="dashboard-card p-4 mb-6 flex flex-col md:flex-row justify-center items-center space-y-3 md:space-y-0 md:space-x-4 border-b">
-            <button id="connect-button" onclick="connectBluetooth()" class="w-full md:w-auto px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-blue-600 transition duration-300 disabled:opacity-50">
-                <i class="fas fa-bluetooth-b mr-2"></i> Sambungkan
-            </button>
-            <button id="disconnect-button" onclick="disconnectBluetooth()" class="w-full md:w-auto px-6 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition duration-300 disabled:opacity-50" disabled>
-                Putuskan
-            </button>
-            <p id="device-info" class="text-sm text-gray-500 mt-2 md:mt-0 italic"></p>
-        </section>
+        <p id="firestore-status" class="text-xs text-center text-gray-500 mb-4">Status DB: Menginisialisasi...</p>
 
         <!-- Status Keselamatan -->
-        <section id="safety-status-section" class="status-box mb-6 hidden">
+        <section id="safety-status-section" class="status-box mb-6 hidden bg-green-100 text-green-600">
             <h3 class="font-bold text-xl mb-1">Status Keselamatan: <span id="safety-status-text">Normal</span></h3>
             <p class="text-sm" id="safety-message">Semua parameter dalam batas aman.</p>
         </section>
@@ -90,10 +108,12 @@
                 <p class="text-sm font-medium text-gray-500 mb-1">Kapasitas (SOC)</p>
                 <p id="soc-value" class="value-text text-green-600">0.0%</p>
                 <div class="h-2 bg-gray-200 rounded-full mt-2"><div id="soc-progress" class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: 0%"></div></div>
+                <!-- Time Remaining -->
+                <p id="time-remaining" class="text-xs font-semibold text-gray-500 mt-2">Waktu Sisa: Menghitung...</p>
             </div>
             <!-- Kesehatan (SOH) -->
             <div class="dashboard-card p-5 border-b-4 border-yellow-500">
-                <p class="text-sm font-medium text-gray-500 mb-1">Kesehatan (SOH)</p>
+                <p class="text-sm font-medium text-gray-500 mb-1">Kesehatan (SOH Rata-rata)</p>
                 <p id="soh-value" class="value-text text-yellow-600">0.0%</p>
                 <div class="h-2 bg-gray-200 rounded-full mt-2"><div id="soh-progress" class="h-full bg-yellow-500 rounded-full transition-all duration-500" style="width: 0%"></div></div>
             </div>
@@ -104,36 +124,77 @@
             </div>
         </section>
 
-        <!-- Parameter Kelistrikan -->
+        <!-- Parameter Kelistrikan Inti (6 Kartu) -->
         <section class="mb-8 p-6 dashboard-card">
-            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Parameter Kelistrikan</h2>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <!-- Tegangan Total (Index 0) -->
+            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Parameter Kelistrikan Inti</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <!-- 1. Tegangan Total (Index 0) -->
                 <div class="p-4 rounded-lg card-voltage">
                     <p class="text-sm font-semibold mb-1">Tegangan Total</p>
                     <p id="total-voltage" class="value-text">0.00 V</p>
+                    <!-- Tambahkan Min/Max di bawah Nilai Tegangan Total -->
+                    <p id="min-max-voltage" class="text-xs font-medium mt-1">Min: 0.00 V | Max: 0.00 V</p>
                 </div>
-                <!-- Arus (Index 5) -->
+                <!-- 2. Arus (Index 5) -->
                 <div class="p-4 rounded-lg card-current">
                     <p class="text-sm font-semibold mb-1">Arus</p>
                     <p id="current-value" class="value-text">0.00 A</p>
+                    <!-- Tambahan Min/Max Arus -->
+                    <p id="min-max-current" class="text-xs font-medium mt-1">Min: 0.00 A | Max: 0.00 A</p>
                 </div>
-                <!-- Delta V (TBD - Min/Max Sel) -->
-                <div class="p-4 rounded-lg card-delta">
-                    <p class="text-sm font-semibold mb-1">DeltaV</p>
-                    <p id="delta-v-value" class="value-text">0 mV</p>
+                <!-- 3. Daya (Index 6) -->
+                <div class="p-4 rounded-lg card-power">
+                    <p class="text-sm font-semibold mb-1">Daya</p>
+                    <p id="power-value" class="value-text">0.00 W</p>
+                    <!-- Tambahan Min/Max Daya -->
+                    <p id="min-max-power" class="text-xs font-medium mt-1">Min: 0.00 W | Max: 0.00 W</p>
                 </div>
-                <!-- TTE/TTF (TBD - Kapasitas) -->
-                <div class="p-4 rounded-lg card-tte">
-                    <p class="text-sm font-semibold mb-1">Kapasitas Tersisa</p>
+                <!-- 4. Kapasitas Tersisa (Index 11) -->
+                <div class="p-4 rounded-lg card-cap-rem">
+                    <p class="text-sm font-semibold mb-1">Kapasitas Sisa</p>
                     <p id="remaining-capacity" class="value-text">0 Ah</p>
+                </div>
+                <!-- 5. Kapasitas Terpakai (Index 7) -->
+                <div class="p-4 rounded-lg card-cap-used">
+                    <p class="text-sm font-semibold mb-1">Kapasitas Terpakai</p>
+                    <p id="capacity-used-value" class="value-text">0 Ah</p>
+                </div>
+                <!-- 6. Delta V (Min/Max Sel Aktif) -->
+                <div class="p-4 rounded-lg card-delta">
+                    <p class="text-sm font-semibold mb-1">DeltaV Sel Aktif</p>
+                    <p id="delta-v-value" class="value-text">0 mV</p>
                 </div>
             </div>
         </section>
 
-        <!-- Detail Tegangan Sel (3S) -->
+        <!-- Grafik Akumulasi Wh -->
         <section class="mb-8 p-6 dashboard-card">
-            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Detail Tegangan Sel (3S)</h2>
+            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Grafik Akumulasi Energi (Wh)</h2>
+            
+            <!-- Pilihan Periode -->
+            <div class="flex flex-wrap justify-center space-x-2 p-2 bg-gray-100 rounded-lg mb-4">
+                <button id="period-1h" onclick="selectPeriod('1h')" class="period-button period-active">1 Jam</button>
+                <button id="period-6h" onclick="selectPeriod('6h')" class="period-button">6 Jam</button>
+                <button id="period-12h" onclick="selectPeriod('12h')" class="period-button">12 Jam</button>
+                <button id="period-24h" onclick="selectPeriod('24h')" class="period-button">24 Jam</button>
+                <button id="period-30d" onclick="selectPeriod('30d')" class="period-button">30 Hari</button>
+            </div>
+
+            <!-- Area Grafik -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <canvas id="whChart"></canvas>
+                <p id="chart-status" class="text-center text-sm text-gray-500 mt-2">Memuat data Wh...</p>
+                <div class="flex justify-center space-x-8 text-sm mt-4 font-semibold">
+                    <p class="text-green-600"><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span> Total Charge: <span id="total-charge-wh">0.000 Wh</span></p>
+                    <p class="text-red-600"><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span> Total Discharge: <span id="total-discharge-wh">0.000 Wh</span></p>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- Detail Tegangan Sel (Semua 4 Sel ditampilkan) -->
+        <section class="mb-8 p-6 dashboard-card">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Detail Tegangan Sel (S1-S4)</h2>
             <div id="cell-voltage-detail" class="grid cell-grid gap-4">
                 <!-- Sel 1 (Index 1) -->
                 <div id="cell-1" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
@@ -150,24 +211,27 @@
                     <p class="text-sm font-medium">Sel 3</p>
                     <p class="text-xl font-bold text-gray-800">0.00 V</p>
                 </div>
-                <!-- Sel 4 (Index 4 - Nonaktif) -->
-                <div id="cell-4" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300 opacity-50">
-                    <p class="text-sm font-medium">Sel 4 (3S)</p>
-                    <p class="text-xl font-bold text-gray-500">-- V</p>
+                <!-- Sel 4 (Index 4 - Ditampilkan 0V) -->
+                <div id="cell-4" class="p-3 text-center rounded-lg bg-gray-200 border border-gray-300">
+                    <p class="text-sm font-medium">Sel 4</p>
+                    <p class="text-xl font-bold text-gray-500">0.00 V</p>
                 </div>
             </div>
+            <p id="summary-min-max" class="mt-4 text-sm text-gray-500 text-center">Min: 0.000 V | Max: 0.000 V | DeltaV: 0 mV</p>
+            <p id="balancing-status" class="font-bold text-lg text-green-600 text-center mt-2">Status Balancing: Normal</p>
         </section>
 
-        <!-- Ringkasan Tambahan -->
+        <!-- Parameter Detail Tambahan -->
         <section class="p-6 dashboard-card">
-            <h2 class="text-xl font-bold text-gray-900 mb-3 border-b pb-2">Ringkasan & Status Balancing</h2>
-            <p id="summary-min-max" class="mb-1 text-md text-gray-700">Min: 0.000 V | Max: 0.000 V | DeltaV: 0 mV</p>
-            <p id="balancing-status" class="font-bold text-lg text-green-600">Status Balancing: Normal</p>
+            <h2 class="text-xl font-bold text-gray-900 mb-4 border-b pb-2">Parameter Detail Tambahan</h2>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="extra-parameters">
+                <!-- Data detail tambahan diinjeksi di sini -->
+            </div>
         </section>
 
         <!-- Error Box -->
         <div id="error-box" class="mt-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
-            <p class="font-bold text-lg">⚠️ Kesalahan Protokol/Koneksi:</p>
+            <p class="font-bold text-lg">⚠️ Kesalahan Protokol/Koneksi/Parsing:</p>
             <p id="error-details" class="text-sm mt-1"></p>
         </div>
     </div>
@@ -175,179 +239,252 @@
     <!-- Font Awesome Icons -->
     <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
 
-    <script>
+    <!-- Firebase SDK Modules -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, where, orderBy, getDocs, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Pastikan variabel global Canvas tersedia
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Inisialisasi Firebase
+        let app, db, auth;
+        let userId = null;
+        let isFirebaseReady = false;
+
+        if (Object.keys(firebaseConfig).length > 0) {
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                document.getElementById('firestore-status').textContent = 'Status DB: Terhubung, Otentikasi...';
+
+                // Otentikasi
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                isFirebaseReady = true;
+                document.getElementById('firestore-status').textContent = `Status DB: Siap (${auth.currentUser.isAnonymous ? 'Anonim' : 'Custom'} | UID: ${userId})`;
+
+            } catch (e) {
+                console.error("Firebase/Auth Error:", e);
+                document.getElementById('firestore-status').textContent = `Status DB: GAGAL! ${e.message}`;
+            }
+        } else {
+            document.getElementById('firestore-status').textContent = 'Status DB: Tidak Aktif (Missing Config)';
+        }
+
+        // Ekspos variabel penting ke scope global window
+        window.db = db;
+        window.userId = userId;
+        window.isFirebaseReady = isFirebaseReady;
+        window.BMS_LOGS_PATH = `/artifacts/${appId}/public/data/bms_logs`; 
+        window.serverTimestamp = serverTimestamp;
+        window.Timestamp = Timestamp;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.query = query;
+        window.where = where;
+        window.orderBy = orderBy;
+        window.getDocs = getDocs;
+
+    </script>
+
+
+    <script type="text/javascript">
         // --- UUID Konfigurasi Perangkat ---
         const UART_SERVICE_UUID = '0000ffe0-0000-1000-8000-00805f9b34fb'; 
         const TX_CHARACTERISTIC_UUID = '0000ffe2-0000-1000-8000-00805f9b34fb'; 
         const RX_CHARACTERISTIC_UUID = '0000ffe1-0000-1000-8000-00805f9b34fb'; 
-        const EXPECTED_LENGTH = 66; // Total bytes yang diharapkan (1 Start + 16 Float * 4 + 1 Checksum)
-
-        let useWriteWithoutResponse = false; 
+        const EXPECTED_LENGTH = 66; 
 
         // --- Variabel Global & Konstanta Lainnya ---
         let device = null;
         let rxCharacteristic = null;
         let txCharacteristic = null;
         let requestInterval = null;
-        let dataBuffer = new ArrayBuffer(0); // Buffer untuk mengumpulkan data yang terfragmentasi
+        let dataBuffer = new ArrayBuffer(0); 
         
-        // Pemetaan Index Data (sesuai BMS 3S Anda, 16 float total)
+        let whChart = null; // Instans Chart.js
+        let lastLogTime = 0; // Untuk batasan logging 10 detik
+
+        // Variabel untuk melacak Tegangan Total Min dan Max sejak koneksi
+        let minTotalVoltage = Infinity;
+        let maxTotalVoltage = -Infinity;
+
+        // Variabel untuk melacak Arus Min dan Max sejak koneksi (Baru Ditambah)
+        let minCurrent = Infinity;
+        let maxCurrent = -Infinity;
+
+        // Variabel untuk melacak Daya Min dan Max sejak koneksi (Baru Ditambah)
+        let minPower = Infinity;
+        let maxPower = -Infinity;
+
+        // Pemetaan Index Data 
         const DATA_INDICES = {
-            TOTAL_VOLTAGE: 0,
-            CELL_1: 1,
-            CELL_2: 2,
-            CELL_3: 3,
-            CELL_4_UNUSED: 4, 
-            CURRENT: 5,
-            POWER: 6, // Index 6 Daya (W)
-            CAP_USED: 7, // Kapasitas Terpakai (Ah)
-            SOC: 8,
-            TEMP_1: 9,
-            TEMP_2: 10,
+            TOTAL_VOLTAGE: 0, CELL_1: 1, CELL_2: 2, CELL_3: 3, CELL_4: 4, 
+            CURRENT: 5, POWER: 6, CAP_USED: 7, SOC: 8,
+            TEMP_1: 9, TEMP_2: 10, 
             CAP_REMAINING: 11,
-            SOH_1: 12,
-            SOH_2: 13,
-            STATUS_CHARGE: 14,
-            STATUS_DISCHARGE: 15,
+            SOH_1: 12, SOH_2: 13, 
+            STATUS_CHARGE: 14, STATUS_DISCHARGE: 15,
         };
+
+        // Definisi semua 16 data.
+        const ALL_DATA_MAP = [
+            // Dikecualikan dari 'Tambahan' (sudah di Ringkasan atau Inti)
+            { label: 'Tegangan Total', unit: 'V', index: 0, showInExtra: false },
+            { label: 'Tegangan Sel 1', unit: 'V', index: 1, showInExtra: false },
+            { label: 'Tegangan Sel 2', unit: 'V', index: 2, showInExtra: false },
+            { label: 'Tegangan Sel 3', unit: 'V', index: 3, showInExtra: false },
+            { label: 'Tegangan Sel 4', unit: 'V', index: 4, showInExtra: false },
+            { label: 'Arus', unit: 'A', index: 5, showInExtra: false },
+            { label: 'Daya', unit: 'W', index: 6, showInExtra: false },
+            { label: 'Kapasitas Terpakai', unit: 'Ah', index: 7, showInExtra: false },
+            { label: 'SOC (State of Charge)', unit: '%', index: 8, showInExtra: false },
+            { label: 'Kapasitas Tersisa', unit: 'Ah', index: 11, showInExtra: false },
+
+            // Parameter Tambahan
+            { label: 'Suhu Sensor 1', unit: '°C', index: 9, showInExtra: true, icon: 'thermometer' },
+            { label: 'Suhu Sensor 2', unit: '°C', index: 10, showInExtra: true, icon: 'thermometer' },
+            { label: 'Kesehatan SOH 1', unit: '%', index: 12, showInExtra: true, icon: 'heart-pulse' },
+            { label: 'Kesehatan SOH 2', unit: '%', index: 13, showInExtra: true, icon: 'heart-pulse' },
+            { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, icon: 'plug' },
+            { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, icon: 'fire' },
+        ];
+
 
         // --- UI Elements ---
         const statusMessage = document.getElementById('status-message');
+        const deviceInfo = document.getElementById('device-info');
         const connectButton = document.getElementById('connect-button');
         const disconnectButton = document.getElementById('disconnect-button');
-        const deviceInfo = document.getElementById('device-info');
         const errorBox = document.getElementById('error-box');
         const errorDetails = document.getElementById('error-details');
         
-        // Elemen Dashboard
+        const cellElements = [
+            document.getElementById('cell-1'), 
+            document.getElementById('cell-2'), 
+            document.getElementById('cell-3'),
+            document.getElementById('cell-4'),
+        ];
+        const summaryMinMaxElement = document.getElementById('summary-min-max');
+        const totalVoltageElement = document.getElementById('total-voltage');
+        const minMaxVoltageElement = document.getElementById('min-max-voltage'); 
+        const currentElement = document.getElementById('current-value');
+        const minMaxCurrentElement = document.getElementById('min-max-current'); // Element baru
+        const powerElement = document.getElementById('power-value');
+        const minMaxPowerElement = document.getElementById('min-max-power'); // Element baru
+        const capacityUsedElement = document.getElementById('capacity-used-value');
+        const remainingCapacityElement = document.getElementById('remaining-capacity');
+        const deltaVElement = document.getElementById('delta-v-value');
         const socValueElement = document.getElementById('soc-value');
         const socProgressElement = document.getElementById('soc-progress');
         const sohValueElement = document.getElementById('soh-value');
         const sohProgressElement = document.getElementById('soh-progress');
         const tempValueElement = document.getElementById('temp-value');
-
-        const totalVoltageElement = document.getElementById('total-voltage');
-        const currentElement = document.getElementById('current-value');
-        const remainingCapacityElement = document.getElementById('remaining-capacity');
-        const deltaVElement = document.getElementById('delta-v-value');
-
-        const cells = [
-            document.getElementById('cell-1'), 
-            document.getElementById('cell-2'), 
-            document.getElementById('cell-3'),
-            document.getElementById('cell-4'), // Sel 4 (nonaktif)
-        ];
-        
-        const summaryMinMaxElement = document.getElementById('summary-min-max');
-        const balancingStatusElement = document.getElementById('balancing-status');
+        const timeRemainingElement = document.getElementById('time-remaining');
         const safetyStatusSection = document.getElementById('safety-status-section');
         const safetyStatusText = document.getElementById('safety-status-text');
         const safetyMessage = document.getElementById('safety-message');
+        const extraParametersContainer = document.getElementById('extra-parameters');
+        const chartStatusElement = document.getElementById('chart-status');
+        const totalChargeWhElement = document.getElementById('total-charge-wh');
+        const totalDischargeWhElement = document.getElementById('total-discharge-wh');
+        
 
+        // --- Utility Functions (formatTime, calculateChecksum, parseData, sendRequest, handleNotifications, onDisconnected) ---
+        function formatTime(hours) {
+            if (hours === Infinity || hours === 0) return "N/A";
 
-        // --- Utility Functions ---
-
-        /**
-         * Menghitung checksum XOR dari buffer data.
-         * @param {DataView} dataView - Objek DataView dari paket.
-         */
+            const totalSeconds = Math.round(hours * 3600);
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            
+            let result = "";
+            if (h > 0) {
+                result += `${h}j `;
+            }
+            if (m > 0 || h === 0) {
+                 result += `${m}m`;
+            }
+            
+            return result.trim() || "<1m";
+        }
         function calculateChecksum(dataView) {
             let checksum = 0;
-            // Kita XOR byte 1 sampai byte 64 (total 64 byte payload data float)
             for (let i = 1; i <= 64; i++) {
                 checksum ^= dataView.getUint8(i);
             }
             return checksum;
         }
-
-        /**
-         * Memparsing paket data mentah, memvalidasi start byte dan checksum,
-         * dan mengekstrak 16 nilai float.
-         * @param {DataView} dataView - DataView yang berisi paket 66 byte.
-         * @returns {Array<number>|null} Array berisi 16 nilai float, atau null jika gagal.
-         */
         function parseData(dataView) {
             if (dataView.byteLength !== EXPECTED_LENGTH) {
-                errorDetails.textContent = `[Parsing Gagal Internal] Panjang Data Diterima Salah: ${dataView.byteLength} byte (diharapkan ${EXPECTED_LENGTH}).`;
+                errorDetails.textContent = `[Parsing Gagal Internal] Data Diterima Salah: ${dataView.byteLength} byte.`;
                 errorBox.classList.remove('hidden');
                 return null;
             }
 
-            // 1. Validasi Start Byte (0xAA)
             const startByte = dataView.getUint8(0);
             if (startByte !== 0xAA) {
-                errorDetails.textContent = `[Parsing Gagal] Start Byte salah: 0x${startByte.toString(16)} (diharapkan 0xAA).`;
+                errorDetails.textContent = `[Parsing Gagal] Start Byte salah: 0x${startByte.toString(16)}.`;
                 errorBox.classList.remove('hidden');
                 return null;
             }
 
-            // 2. Validasi Checksum (Byte terakhir)
             const receivedChecksum = dataView.getUint8(65);
             const calculatedChecksum = calculateChecksum(dataView);
 
             if (receivedChecksum !== calculatedChecksum) {
-                errorDetails.textContent = `[Parsing Gagal] Checksum salah. Diterima: 0x${receivedChecksum.toString(16)}, Dihitung: 0x${calculatedChecksum.toString(16)}.`;
+                errorDetails.textContent = `[Parsing Gagal] Checksum salah. Diterima: 0x${receivedChecksum.toString(16)}.`;
                 errorBox.classList.remove('hidden');
                 return null;
             }
 
-            // Checksum OK, parsing 16 float (32-bit, Little Endian)
             const values = [];
-            let offset = 1; // Mulai dari byte 1, setelah Start Byte
+            let offset = 1; 
             for (let i = 0; i < 16; i++) {
-                // TRUE berarti Little-Endian
                 const floatValue = dataView.getFloat32(offset, true);
                 values.push(floatValue);
                 offset += 4; 
             }
             
-            errorBox.classList.add('hidden'); // Sembunyikan pesan error jika parsing berhasil
+            errorBox.classList.add('hidden'); 
             return values;
         }
-
-        /**
-         * Mengirim perintah 'R' (Request Data) ke perangkat Bluetooth.
-         */
         async function sendRequest() {
             if (!txCharacteristic) return;
             try {
                 const value = new TextEncoder().encode("R");
-                if (useWriteWithoutResponse) {
-                    await txCharacteristic.writeValueWithoutResponse(value);
-                } else {
-                    await txCharacteristic.writeValue(value);
-                }
+                await txCharacteristic.writeValue(value);
             } catch (error) {
                 console.error("Gagal mengirim perintah 'R':", error);
-                statusMessage.textContent = "Gagal mengirim perintah 'R'. Interval dihentikan.";
+                statusMessage.textContent = "Gagal mengirim perintah. Interval dihentikan.";
                 if (requestInterval) {
                     clearInterval(requestInterval);
                     requestInterval = null;
                 }
             }
         }
-
-        /**
-         * Handler saat karakteristik RX (terima data) berubah (notifikasi).
-         * Menerapkan logika buffering untuk menangani fragmentasi.
-         */
         function handleNotifications(event) {
             const incomingData = event.target.value.buffer;
             
-            // 1. Gabungkan data baru ke buffer yang sudah ada
             const newBuffer = new ArrayBuffer(dataBuffer.byteLength + incomingData.byteLength);
             const view = new Uint8Array(newBuffer);
             
-            // Salin data lama
             view.set(new Uint8Array(dataBuffer), 0);
-            // Salin data baru
             view.set(new Uint8Array(incomingData), dataBuffer.byteLength);
             
             dataBuffer = newBuffer;
 
-            // 2. Cek apakah panjang data sudah cukup untuk satu paket
             if (dataBuffer.byteLength >= EXPECTED_LENGTH) {
-                // Potong paket 66 byte pertama untuk diproses
                 const dataToParse = dataBuffer.slice(0, EXPECTED_LENGTH);
                 const dataView = new DataView(dataToParse);
 
@@ -355,213 +492,28 @@
 
                 if (parsedValues) {
                     updateDashboard(parsedValues);
+                    logBMSData(parsedValues[DATA_INDICES.POWER]); // Log Power ke Firestore
+                    
+                    // Refresh grafik setiap 30 detik jika periode 1h
+                    const now = Date.now();
+                    // Hanya refresh jika terhubung DAN periode aktif 1 jam
+                    if (selectedPeriod === '1h' && (now - lastLogTime) >= 10000) { 
+                        fetchAndRenderGraphs(selectedPeriod);
+                    }
+                    
+                    statusMessage.textContent = `Terkoneksi | Data terakhir diterima dari BMS.`;
                 } else {
+                    statusMessage.textContent = `Terkoneksi | Data diterima, namun gagal diuraikan (parsing error).`;
                     console.error("Parsing gagal, membuang paket 66 byte yang tidak valid.");
                 }
 
-                // 3. Pindahkan buffer ke sisa data (data yang melebihi 66 byte)
                 dataBuffer = dataBuffer.slice(EXPECTED_LENGTH); 
 
                 if (dataBuffer.byteLength > 0) {
-                    console.warn(`[Buffer Warning] Ada ${dataBuffer.byteLength} byte sisa data setelah parsing paket 66 byte.`);
-                }
-            } else {
-                console.log(`Menerima ${incomingData.byteLength} byte. Total di buffer: ${dataBuffer.byteLength}/${EXPECTED_LENGTH}`);
-            }
-        }
-
-        /**
-         * Mengupdate semua elemen UI berdasarkan data yang diparsing.
-         * @param {Array<number>} values - Array 16 nilai float.
-         */
-        function updateDashboard(values) {
-            // 1. Ambil nilai sel aktif (Index 1, 2, 3)
-            const cellVoltages = [
-                values[DATA_INDICES.CELL_1],
-                values[DATA_INDICES.CELL_2],
-                values[DATA_INDICES.CELL_3]
-            ];
-            
-            // Inisialisasi Min/Max untuk sel aktif
-            let minCellV = Infinity;
-            let maxCellV = -Infinity;
-            let totalValidCells = 0;
-            
-            // 2. Update Detail Tegangan Sel (Sel 1-3 aktif)
-            cellVoltages.forEach((v, i) => {
-                const cellElement = cells[i]; // cells[0] adalah Sel 1
-                const voltage = v.toFixed(3);
-                
-                // Asumsi: Tegangan di atas 1V adalah valid
-                if (v > 1.0) { 
-                    minCellV = Math.min(minCellV, v);
-                    maxCellV = Math.max(maxCellV, v);
-                    totalValidCells++;
-                }
-
-                cellElement.querySelector('.text-xl').textContent = `${voltage} V`;
-
-                // Logic pewarnaan sederhana untuk sel
-                let bgClass = 'bg-gray-100';
-                if (v > 4.2) { bgClass = 'bg-red-200'; } // Overvoltage
-                else if (v > 3.8) { bgClass = 'bg-green-100'; } // Healthy
-                else if (v < 3.0 && v > 1.0) { bgClass = 'bg-yellow-100'; } // Low
-                else if (v < 1.0) { bgClass = 'bg-gray-200'; } // Very low/unconnected
-                
-                cellElement.className = `p-3 text-center rounded-lg border border-gray-300 ${bgClass}`;
-            });
-            
-            // Update Sel 4 (nonaktif)
-            cells[3].querySelector('.text-xl').textContent = `-- V`;
-            cells[3].className = `p-3 text-center rounded-lg bg-gray-100 border border-gray-300 opacity-50`;
-            
-            // 3. Hitung dan Update Delta V
-            const deltaV = (maxCellV !== -Infinity && minCellV !== Infinity) ? (maxCellV - minCellV) * 1000 : 0;
-            const deltaVText = totalValidCells >= 2 ? `${Math.round(deltaV)} mV` : 'N/A';
-            deltaVElement.textContent = deltaVText;
-
-            // 4. Update Ringkasan
-            const minVText = minCellV !== Infinity ? minCellV.toFixed(3) : '0.000';
-            const maxVText = maxCellV !== -Infinity ? maxCellV.toFixed(3) : '0.000';
-            summaryMinMaxElement.textContent = `Min: ${minVText} V | Max: ${maxVText} V | DeltaV: ${deltaVText}`;
-            
-            // 5. Update Status Balancing
-            let balancingMessage = 'Normal';
-            let balancingColor = 'text-green-600';
-
-            if (deltaV > 100) { // Jika beda tegangan > 100mV
-                balancingMessage = 'Perlu Perhatian Tinggi!';
-                balancingColor = 'text-red-600';
-            } else if (deltaV > 50) { // Jika beda tegangan > 50mV
-                balancingMessage = 'Balancing Aktif/Dibutuhkan';
-                balancingColor = 'text-yellow-600';
-            }
-            balancingStatusElement.textContent = `Status Balancing: ${balancingMessage}`;
-            balancingStatusElement.className = `font-bold text-lg ${balancingColor}`;
-            
-            // 6. Update Parameter Kelistrikan
-            totalVoltageElement.textContent = `${values[DATA_INDICES.TOTAL_VOLTAGE].toFixed(2)} V`;
-            currentElement.textContent = `${values[DATA_INDICES.CURRENT].toFixed(2)} A`;
-            remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_REMAINING].toFixed(2)} Ah`;
-            
-            // 7. Update Ringkasan Utama (SOC, SOH, Suhu)
-            const soc = Math.min(100, Math.max(0, values[DATA_INDICES.SOC].toFixed(2)));
-            const soh = Math.min(100, Math.max(0, ((values[DATA_INDICES.SOH_1] + values[DATA_INDICES.SOH_2]) / 2).toFixed(2))); // Rata-rata SOH 1 & 2
-            const maxTemp = Math.max(values[DATA_INDICES.TEMP_1], values[DATA_INDICES.TEMP_2]).toFixed(1);
-            
-            socValueElement.textContent = `${soc}%`;
-            socProgressElement.style.width = `${soc}%`;
-            
-            sohValueElement.textContent = `${soh}%`;
-            sohProgressElement.style.width = `${soh}%`;
-
-            tempValueElement.textContent = `${maxTemp}°C`;
-
-            // 8. Update Status Keselamatan
-            let safetyMsg = "Semua parameter dalam batas aman.";
-            let safetyClass = 'status-box';
-            let statusText = 'Normal';
-
-            if (maxTemp > 50) {
-                 safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 50°C.";
-                 safetyClass = 'status-box bg-red-200 text-red-700';
-                 statusText = 'Bahaya!';
-            } else if (deltaV > 150) {
-                 safetyMsg = "PERINGATAN: Delta Voltage Sangat Tinggi! Balancing diperlukan.";
-                 safetyClass = 'status-box bg-yellow-200 text-yellow-700';
-                 statusText = 'Peringatan!';
-            }
-
-            safetyStatusSection.className = safetyClass + ' mb-6';
-            safetyStatusSection.classList.remove('hidden');
-            safetyStatusText.textContent = statusText;
-            safetyMessage.textContent = safetyMsg;
-        }
-
-        // --- Bluetooth Connection Logic (Sama seperti versi sebelumnya, dengan buffer) ---
-        async function connectBluetooth() {
-            if (!navigator.bluetooth) {
-                statusMessage.textContent = "Web Bluetooth tidak didukung di browser ini. Gunakan Chrome melalui HTTPS/localhost.";
-                return;
-            }
-
-            connectButton.disabled = true;
-            errorBox.classList.add('hidden');
-            statusMessage.textContent = "Memindai perangkat...";
-
-            try {
-                device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
-                    optionalServices: [UART_SERVICE_UUID] 
-                });
-
-                device.addEventListener('gattserverdisconnected', onDisconnected);
-                deviceInfo.textContent = `Perangkat: ${device.name || 'Tidak Dikenal'}`;
-                statusMessage.textContent = `Menyambung ke ${device.name || 'perangkat tak dikenal'}...`;
-
-                const server = await device.gatt.connect();
-                statusMessage.textContent = "Tersambung. Mencari Layanan Serial (FFE0)...";
-
-                const service = await server.getPrimaryService(UART_SERVICE_UUID);
-                statusMessage.textContent = "Layanan ditemukan. Mencari Karakteristik (FFE1 & FFE2)...";
-
-                rxCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
-                txCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
-
-                // Diagnosis Properti
-                let errorMsg = '';
-                if (!(rxCharacteristic.properties.notify || rxCharacteristic.properties.indicate)) {
-                    errorMsg += 'Karakteristik RX (FFE1) tidak mendukung NOTIFY/INDICATE.\n';
-                }
-                if (txCharacteristic.properties.write) {
-                    useWriteWithoutResponse = false;
-                } else if (txCharacteristic.properties.writeWithoutResponse) {
-                    useWriteWithoutResponse = true;
-                } else {
-                    errorMsg += 'Karakteristik TX (FFE2) tidak mendukung WRITE.\n';
-                }
-
-                if (errorMsg) {
-                    throw new Error(`Karakteristik tidak mendukung operasi yang diperlukan:\n${errorMsg}`);
-                }
-                
-                // 5. Enable RX Notifications
-                await rxCharacteristic.startNotifications();
-                rxCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
-                
-                statusMessage.textContent = "Dashboard siap! Data diperbarui setiap detik.";
-                connectButton.disabled = true;
-                disconnectButton.disabled = false;
-
-                // 6. Start sending the 'R' command
-                requestInterval = setInterval(sendRequest, 1000);
-
-            } catch (error) {
-                console.error("Kesalahan koneksi/GATT:", error);
-                let detailText = `Error: ${error.message}`;
-                errorDetails.textContent = detailText;
-                errorBox.classList.remove('hidden');
-                statusMessage.textContent = "Koneksi Gagal. Cek Detail Error di bawah.";
-                
-                // Cleanup
-                connectButton.disabled = false;
-                disconnectButton.disabled = true;
-                deviceInfo.textContent = "";
-                if (requestInterval) {
-                    clearInterval(requestInterval);
-                    requestInterval = null;
+                    console.warn(`[Buffer Warning] ${dataBuffer.byteLength} byte data sisa.`);
                 }
             }
         }
-
-        function disconnectBluetooth() {
-            if (device && device.gatt.connected) {
-                device.gatt.disconnect();
-            } else {
-                onDisconnected(); 
-            }
-        }
-
         function onDisconnected() {
             if (requestInterval) {
                 clearInterval(requestInterval);
@@ -580,12 +532,519 @@
             const initialValues = Array(16).fill(0.0);
             updateDashboard(initialValues);
             safetyStatusSection.classList.add('hidden'); 
+            
+            // Reset min/max trackers
+            minTotalVoltage = Infinity;
+            maxTotalVoltage = -Infinity;
+            minMaxVoltageElement.textContent = "Min: 0.00 V | Max: 0.00 V";
+            
+            minCurrent = Infinity;
+            maxCurrent = -Infinity;
+            minMaxCurrentElement.textContent = "Min: 0.00 A | Max: 0.00 A";
+
+            minPower = Infinity;
+            maxPower = -Infinity;
+            minMaxPowerElement.textContent = "Min: 0.00 W | Max: 0.00 W";
         }
 
-        // Initialize dashboard display with 0.000 values
-        document.addEventListener('DOMContentLoaded', () => {
+        // --- Logic Koneksi Bluetooth (connectBluetooth, disconnectBluetooth) ---
+        async function connectBluetooth() {
+            if (!navigator.bluetooth) {
+                statusMessage.textContent = "Web Bluetooth tidak didukung. Gunakan Chrome via HTTPS/localhost.";
+                return;
+            }
+
+            connectButton.disabled = true;
+            errorBox.classList.add('hidden');
+            statusMessage.textContent = "Memindai perangkat...";
+
+            try {
+                // Sisa logic koneksi Bluetooth sama seperti sebelumnya
+                device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: [UART_SERVICE_UUID] 
+                });
+
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                deviceInfo.textContent = `Perangkat: ${device.name || 'Tidak Dikenal'}`;
+                statusMessage.textContent = `Menyambung ke ${device.name || 'perangkat tak dikenal'}...`;
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(UART_SERVICE_UUID);
+                rxCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
+                txCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+                
+                // Cek karakteristik properties
+                let errorMsg = '';
+                if (!(rxCharacteristic.properties.notify || rxCharacteristic.properties.indicate)) {
+                    errorMsg += 'RX (FFE1) tidak mendukung NOTIFY/INDICATE.\n';
+                }
+                if (!txCharacteristic.properties.write && !txCharacteristic.properties.writeWithoutResponse) {
+                    errorMsg += 'TX (FFE2) tidak mendukung WRITE.\n';
+                }
+                if (errorMsg) {
+                    throw new Error(`Karakteristik tidak mendukung operasi: ${errorMsg}`);
+                }
+                
+                await rxCharacteristic.startNotifications();
+                rxCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+                
+                statusMessage.textContent = "Terkoneksi! Permintaan data dimulai (1Hz).";
+                connectButton.disabled = true;
+                disconnectButton.disabled = false;
+
+                // Reset min/max trackers saat koneksi baru
+                minTotalVoltage = Infinity;
+                maxTotalVoltage = -Infinity;
+                minCurrent = Infinity;
+                maxCurrent = -Infinity;
+                minPower = Infinity;
+                maxPower = -Infinity;
+                minMaxVoltageElement.textContent = "Min: 0.00 V | Max: 0.00 V";
+                minMaxCurrentElement.textContent = "Min: 0.00 A | Max: 0.00 A";
+                minMaxPowerElement.textContent = "Min: 0.00 W | Max: 0.00 W";
+                
+                requestInterval = setInterval(sendRequest, 1000);
+                
+                // Setelah koneksi berhasil, segera muat grafik untuk periode default
+                await fetchAndRenderGraphs(selectedPeriod);
+
+            } catch (error) {
+                console.error("Kesalahan koneksi/GATT:", error);
+                errorDetails.textContent = `Error: ${error.message}`;
+                errorBox.classList.remove('hidden');
+                statusMessage.textContent = "Koneksi Gagal. Silakan coba lagi.";
+                
+                connectButton.disabled = false;
+                disconnectButton.disabled = true;
+                deviceInfo.textContent = "";
+                if (requestInterval) {
+                    clearInterval(requestInterval);
+                    requestInterval = null;
+                }
+            }
+        }
+        function disconnectBluetooth() {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            } else {
+                onDisconnected(); 
+            }
+        }
+
+        // --- Logic Firestore untuk Logging ---
+        async function logBMSData(power) {
+            if (!window.isFirebaseReady || !window.db || power === undefined || isNaN(power)) {
+                return;
+            }
+
+            // Batasi logging hanya jika ada aktivitas (Charging/Discharging)
+            // Jika Power mutlak < 0.1W, anggap diam untuk menghindari log yang terlalu banyak
+            if (Math.abs(power) < 0.1) {
+                return; 
+            }
+            
+            // Gunakan interval 10 detik untuk menghemat dokumen Firestore
+            const now = Date.now();
+            if (now - lastLogTime < 10000) { // 10 detik
+                 return;
+            }
+
+            try {
+                await window.addDoc(window.collection(window.db, window.BMS_LOGS_PATH), {
+                    userId: window.userId,
+                    timestamp: window.serverTimestamp(),
+                    power_W: power, // Daya (Watt)
+                });
+                lastLogTime = now;
+            } catch (error) {
+                console.error("Gagal mencatat data ke Firestore:", error);
+                // Non-fatal error, tidak ditampilkan di errorBox utama
+            }
+        }
+
+        // --- Logic Grafik Wh (Diperbarui untuk Akumulasi Area Line Chart) ---
+        let selectedPeriod = '1h'; 
+        const PERIOD_MAP = {
+            '1h': 1, '6h': 6, '12h': 12, '24h': 24, '30d': 720 // 30 hari * 24 jam
+        };
+        const PERIOD_LABEL_MAP = {
+            '1h': '1 Jam', '6h': '6 Jam', '12h': '12 Jam', '24h': '24 Jam', '30d': '30 Hari'
+        };
+
+        function selectPeriod(period) {
+            selectedPeriod = period;
+            
+            // Update tombol aktif
+            document.querySelectorAll('.period-button').forEach(btn => {
+                btn.classList.remove('period-active');
+            });
+            document.getElementById(`period-${period}`).classList.add('period-active');
+            
+            // Muat ulang grafik
+            fetchAndRenderGraphs(period);
+        }
+
+        /**
+         * Mengubah log power_W menjadi data Akumulasi Charge Wh dan Discharge Wh dari waktu ke waktu.
+         * Diasumsikan setiap log berjarak ~10 detik (10/3600 jam).
+         * Menggunakan interpolasi linier untuk mengisi celah waktu.
+         */
+        function calculateAccumulatedEnergy(logs) {
+            if (logs.length === 0) return { labels: [], chargeData: [], dischargeData: [], totalChargeWh: 0, totalDischargeWh: 0 };
+
+            const timeIntervalHours = 10 / 3600; // Asumsi interval logging 10 detik
+            let accumulatedCharge = 0;
+            let accumulatedDischarge = 0;
+
+            const labels = [];
+            const chargeData = [];
+            const dischargeData = [];
+
+            // Tambahkan titik awal 0 di waktu log pertama (jika logs tidak kosong)
+            const firstTimestamp = logs[0].timestamp.toDate();
+            labels.push(firstTimestamp.toLocaleTimeString());
+            chargeData.push(0);
+            dischargeData.push(0);
+
+            logs.forEach(log => {
+                const power = log.power_W;
+                const timestamp = log.timestamp.toDate(); 
+                const wh = Math.abs(power) * timeIntervalHours;
+
+                if (power > 0.1) {
+                    accumulatedCharge += wh;
+                } else if (power < -0.1) {
+                    accumulatedDischarge += wh;
+                }
+                
+                // Tambahkan titik data untuk akumulasi
+                labels.push(timestamp.toLocaleTimeString());
+                chargeData.push(accumulatedCharge);
+                dischargeData.push(accumulatedDischarge);
+            });
+            
+            return { 
+                labels, 
+                chargeData, 
+                dischargeData, 
+                totalChargeWh: accumulatedCharge, 
+                totalDischargeWh: accumulatedDischarge 
+            };
+        }
+
+        async function fetchAndRenderGraphs(period) {
+            if (!window.isFirebaseReady || !window.db) {
+                chartStatusElement.textContent = "Status DB: Tidak Siap. Tidak dapat memuat grafik.";
+                return;
+            }
+            
+            chartStatusElement.textContent = `Memuat data Power ${PERIOD_LABEL_MAP[period]}...`;
+
+            try {
+                const hours = PERIOD_MAP[period];
+                const startTime = window.Timestamp.fromMillis(Date.now() - hours * 3600 * 1000);
+                
+                const q = window.query(
+                    window.collection(window.db, window.BMS_LOGS_PATH),
+                    window.where('userId', '==', window.userId), 
+                    window.where('timestamp', '>=', startTime),
+                    window.orderBy('timestamp', 'asc') // Urutkan Ascending (tertua ke terbaru)
+                );
+
+                const querySnapshot = await window.getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    chartStatusElement.textContent = `Tidak ada data Power yang dicatat dalam ${PERIOD_LABEL_MAP[period]}.`;
+                    renderChart({ labels: [], chargeData: [], dischargeData: [], totalChargeWh: 0, totalDischargeWh: 0 });
+                    return;
+                }
+
+                const logs = [];
+                querySnapshot.forEach(doc => {
+                    logs.push(doc.data());
+                });
+
+                const energyData = calculateAccumulatedEnergy(logs);
+                
+                chartStatusElement.textContent = `Data ${logs.length} titik Power dimuat (${PERIOD_LABEL_MAP[period]}).`;
+                renderChart(energyData);
+
+            } catch (error) {
+                console.error("Gagal mengambil/memproses data grafik Wh:", error);
+                chartStatusElement.textContent = `GAGAL memuat grafik: ${error.message}`;
+            }
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('whChart').getContext('2d');
+            
+            totalChargeWhElement.textContent = `${data.totalChargeWh.toFixed(3)} Wh`;
+            totalDischargeWhElement.textContent = `${data.totalDischargeWh.toFixed(3)} Wh`;
+
+            if (whChart) {
+                whChart.destroy();
+            }
+
+            whChart = new Chart(ctx, {
+                type: 'line', // Menggunakan line chart
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Charge (Akumulasi Wh)',
+                            data: data.chargeData,
+                            backgroundColor: 'rgba(16, 185, 129, 0.2)', // Warna Hijau Muda
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 2,
+                            fill: 'origin', // Mengisi area di bawah garis
+                            tension: 0.4, // Membuat garis lebih halus
+                            pointRadius: 0 // Menghilangkan titik data
+                        },
+                        {
+                            label: 'Discharge (Akumulasi Wh)',
+                            data: data.dischargeData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.2)', // Warna Merah Muda
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 2,
+                            fill: 'origin',
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Akumulasi Energi Wh (${PERIOD_LABEL_MAP[selectedPeriod]})`,
+                            font: { size: 16, weight: 'bold' }
+                        },
+                        tooltip: {
+                             callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(3)} Wh`;
+                                }
+                             }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Waktu'
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Akumulasi Energi (Wh)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // --- Update Dashboard (Termasuk logic Min/Max baru) ---
+        function updateDashboard(values) {
+            const currentTotalVoltage = values[DATA_INDICES.TOTAL_VOLTAGE];
+            const currentCurrent = values[DATA_INDICES.CURRENT];
+            const currentPower = values[DATA_INDICES.POWER];
+            
+            // --- 1. Update Min/Max Trackers ---
+            
+            // Voltage Tracker
+            if (currentTotalVoltage > 1.0) { 
+                minTotalVoltage = Math.min(minTotalVoltage, currentTotalVoltage);
+                maxTotalVoltage = Math.max(maxTotalVoltage, currentTotalVoltage);
+            }
+            const minVDisplay = minTotalVoltage !== Infinity ? minTotalVoltage.toFixed(2) : '0.00';
+            const maxVDisplay = maxTotalVoltage !== -Infinity ? maxTotalVoltage.toFixed(2) : '0.00';
+            minMaxVoltageElement.textContent = `Min: ${minVDisplay} V | Max: ${maxVDisplay} V`;
+
+            // Current Tracker (Min: Nilai terendah, Max: Nilai tertinggi - termasuk pengisian dan pengurasan)
+            if (currentCurrent !== 0 || currentTotalVoltage > 1.0) { // Hanya update jika ada arus atau baterai terhubung
+                minCurrent = Math.min(minCurrent, currentCurrent);
+                maxCurrent = Math.max(maxCurrent, currentCurrent);
+            }
+            const minADisplay = minCurrent !== Infinity ? minCurrent.toFixed(2) : '0.00';
+            const maxADisplay = maxCurrent !== -Infinity ? maxCurrent.toFixed(2) : '0.00';
+            minMaxCurrentElement.textContent = `Min: ${minADisplay} A | Max: ${maxADisplay} A`;
+
+            // Power Tracker
+            if (currentPower !== 0 || currentTotalVoltage > 1.0) { // Hanya update jika ada daya atau baterai terhubung
+                minPower = Math.min(minPower, currentPower);
+                maxPower = Math.max(maxPower, currentPower);
+            }
+            const minWDisplay = minPower !== Infinity ? minPower.toFixed(2) : '0.00';
+            const maxWDisplay = maxPower !== -Infinity ? maxPower.toFixed(2) : '0.00';
+            minMaxPowerElement.textContent = `Min: ${minWDisplay} W | Max: ${maxWDisplay} W`;
+
+
+            // --- 2. Update Detail Sel & Hitung Delta V ---
+            const cellVoltages = [
+                values[DATA_INDICES.CELL_1], values[DATA_INDICES.CELL_2],
+                values[DATA_INDICES.CELL_3], values[DATA_INDICES.CELL_4], 
+            ];
+            
+            let minCellV = Infinity;
+            let maxCellV = -Infinity;
+            let totalActiveCells = 0;
+            
+            cellVoltages.forEach((v, i) => {
+                const cellElement = cellElements[i]; 
+                const voltage = v.toFixed(3);
+                
+                if (v > 1.0) { 
+                    minCellV = Math.min(minCellV, v);
+                    maxCellV = Math.max(maxCellV, v);
+                    totalActiveCells++;
+                }
+
+                cellElement.querySelector('.text-xl').textContent = `${voltage} V`;
+
+                let bgClass = 'bg-gray-100';
+                let textColor = 'text-gray-800';
+                if (v > 4.2) { bgClass = 'bg-red-200'; textColor = 'text-red-800'; } 
+                else if (v > 3.8) { bgClass = 'bg-green-100'; textColor = 'text-green-800'; } 
+                else if (v < 3.0 && v > 1.0) { bgClass = 'bg-yellow-100'; textColor = 'text-yellow-800'; } 
+                else if (v <= 1.0) { 
+                    bgClass = 'bg-gray-200'; 
+                    textColor = 'text-gray-500'; 
+                }
+                
+                cellElement.className = `p-3 text-center rounded-lg border border-gray-300 ${bgClass}`;
+                const cellVoltageText = cellElement.querySelector('.text-xl');
+                cellVoltageText.classList.remove('text-gray-800', 'text-red-800', 'text-green-800', 'text-yellow-800', 'text-gray-500');
+                cellVoltageText.classList.add(textColor);
+            });
+            
+            const deltaV = (maxCellV !== -Infinity && minCellV !== Infinity) ? (maxCellV - minCellV) * 1000 : 0;
+            const deltaVText = totalActiveCells >= 2 ? `${Math.round(deltaV)} mV` : 'N/A';
+            
+            deltaVElement.textContent = deltaVText;
+
+            const minVText = minCellV !== Infinity ? minCellV.toFixed(3) : '0.000';
+            const maxVText = maxCellV !== -Infinity ? maxCellV.toFixed(3) : '0.000';
+            summaryMinMaxElement.textContent = `Sel Aktif (Total: ${totalActiveCells}) | Min: ${minVText} V | Max: ${maxVText} V | DeltaV: ${deltaVText}`;
+            
+            // --- 3. Update Ringkasan Utama (SOC, SOH, Suhu, Time Remaining) ---
+            const soc = Math.min(100, Math.max(0, values[DATA_INDICES.SOC].toFixed(2)));
+            const sohAvg = Math.min(100, Math.max(0, ((values[DATA_INDICES.SOH_1] + values[DATA_INDICES.SOH_2]) / 2).toFixed(2))); 
+            const maxTemp = Math.max(values[DATA_INDICES.TEMP_1], values[DATA_INDICES.TEMP_2]).toFixed(1);
+            const remainingCap = values[DATA_INDICES.CAP_REMAINING];
+            const current = values[DATA_INDICES.CURRENT];
+
+            socValueElement.textContent = `${soc}%`;
+            socProgressElement.style.width = `${soc}%`;
+            sohValueElement.textContent = `${sohAvg}%`;
+            sohProgressElement.style.width = `${sohAvg}%`;
+            tempValueElement.textContent = `${maxTemp}°C`;
+
+            let timeRemainingText;
+            if (current !== 0 && Math.abs(current) > 0.01) { 
+                const hours = remainingCap / Math.abs(current);
+                if (current > 0) {
+                    timeRemainingText = formatTime(hours) + " (TTF)"; 
+                } else {
+                    timeRemainingText = formatTime(hours) + " (TTE)"; 
+                }
+            } else {
+                timeRemainingText = "Diam";
+            }
+            timeRemainingElement.textContent = `Waktu Sisa: ${timeRemainingText}`;
+
+
+            // --- 4. Update Kelistrikan Inti ---
+            totalVoltageElement.textContent = `${currentTotalVoltage.toFixed(2)} V`;
+            currentElement.textContent = `${currentCurrent.toFixed(2)} A`;
+            powerElement.textContent = `${currentPower.toFixed(2)} W`; 
+            capacityUsedElement.textContent = `${values[DATA_INDICES.CAP_USED].toFixed(2)} Ah`; 
+            remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_REMAINING].toFixed(2)} Ah`;
+            
+            // --- 5. Update Parameter Detail Tambahan ---
+            let extraHtml = '';
+            
+            ALL_DATA_MAP.filter(d => d.showInExtra).forEach(dataInfo => {
+                const value = values[dataInfo.index];
+                let formattedValue;
+                let displayUnit = dataInfo.unit;
+                let title = dataInfo.label;
+                let bgColor = 'bg-gray-50';
+                let icon = dataInfo.icon || 'circle-info';
+                let iconColor = 'text-primary';
+
+                if (dataInfo.label.includes('Suhu')) {
+                    formattedValue = value.toFixed(1);
+                    iconColor = 'text-orange-500';
+                } else if (dataInfo.label.includes('Kesehatan')) {
+                    formattedValue = value.toFixed(2);
+                    iconColor = 'text-yellow-500';
+                } else if (dataInfo.label.includes('Relay')) {
+                    formattedValue = (value === 1.0) ? 'AKTIF' : 'NONAKTIF';
+                    displayUnit = '';
+                    iconColor = (value === 1.0) ? 'text-accent' : 'text-gray-400';
+                    bgColor = (value === 1.0) ? 'bg-green-50' : 'bg-gray-50';
+                } else {
+                    formattedValue = value.toFixed(2);
+                }
+
+                extraHtml += `
+                    <div class="p-4 rounded-lg border ${bgColor}">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <i class="fas fa-${icon} text-md ${iconColor}"></i>
+                            <p class="text-sm font-medium text-gray-500">${title}</p>
+                        </div>
+                        <p class="text-xl font-bold text-gray-800">${formattedValue} <span class="text-base font-normal text-gray-400">${displayUnit}</span></p>
+                    </div>
+                `;
+            });
+
+            extraParametersContainer.innerHTML = extraHtml;
+
+
+            // --- 6. Update Status Keselamatan ---
+            let safetyMsg = "Semua parameter dalam batas aman.";
+            let safetyClass = 'status-box bg-green-100 text-green-600';
+            let statusText = 'Normal';
+
+            if (maxTemp > 50) {
+                 safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 50°C.";
+                 safetyClass = 'status-box bg-red-200 text-red-700';
+                 statusText = 'Bahaya!';
+            } else if (deltaV > 150) {
+                 safetyMsg = "PERINGATAN: Delta Voltage Sangat Tinggi! Balancing diperlukan.";
+                 safetyClass = 'status-box bg-yellow-200 text-yellow-700';
+                 statusText = 'Peringatan!';
+            }
+
+            safetyStatusSection.className = safetyClass + ' mb-6';
+            safetyStatusSection.classList.remove('hidden');
+            safetyStatusText.textContent = statusText;
+            safetyMessage.textContent = safetyMsg;
+            
+        }
+
+
+        document.addEventListener('DOMContentLoaded', async () => {
             const initialValues = Array(16).fill(0.0);
             updateDashboard(initialValues);
+            
+            // Inisialisasi Chart.js setelah DOM dimuat
+            // Tunggu hingga Firebase siap sebelum memuat grafik
+            await new Promise(resolve => setTimeout(resolve, 500)); // Beri waktu Firebase inisialisasi
+            if (window.isFirebaseReady) {
+                await fetchAndRenderGraphs(selectedPeriod);
+            }
         });
     </script>
 </body>
