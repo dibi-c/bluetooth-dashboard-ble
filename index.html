@@ -364,7 +364,7 @@
             { label: 'Kesehatan SOH 2', unit: '%', index: 13, showInExtra: true, icon: 'heart-pulse' },
             { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, icon: 'plug' },
             { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, icon: 'fire' },
-           // { label: 'SOH', unit: '%', index: 16, showInExtra: },
+           // { label: 'SOH', unit: '%', index: 16, showInExtra: true },
         ];
 
 
@@ -459,7 +459,7 @@
 
             const values = [];
             let offset = 1; 
-            for (let i = 0; i < 16; i++) {
+            for (let i = 0; i < 17; i++) {
                 const floatValue = dataView.getFloat32(offset, true);
                 values.push(floatValue);
                 offset += 4; 
@@ -947,9 +947,6 @@
 
         // --- Update Dashboard (Termasuk logic Min/Max baru) ---
         function updateDashboard(values) {
-            // Di awal fungsi updateDashboard(values)
-console.log("Panjang Array Data:", values.length);
-console.log("Nilai SOH (Indeks 16):", values[DATA_INDICES.SOH]);
             const currentTotalVoltage = values[DATA_INDICES.TOTAL_VOLTAGE];
             const currentCurrent = values[DATA_INDICES.CURRENT];
             const currentPower = values[DATA_INDICES.POWER];
