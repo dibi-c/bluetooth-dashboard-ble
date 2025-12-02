@@ -513,7 +513,7 @@
                     statusMessage.textContent = `Terkoneksi | Data terakhir diterima dari BMS.`;
                 } else {
                     statusMessage.textContent = `Terkoneksi | Data diterima, namun gagal diuraikan (parsing error).`;
-                    console.error("Parsing gagal, membuang paket 66 byte yang tidak valid.");
+                    console.error("Parsing gagal, membuang paket 70 byte yang tidak valid.");
                 }
 
                 dataBuffer = dataBuffer.slice(EXPECTED_LENGTH); 
@@ -538,7 +538,7 @@
             dataBuffer = new ArrayBuffer(0); 
             
             // Reset display
-            const initialValues = Array(16).fill(0.0);
+            const initialValues = Array(17).fill(0.0);
             updateDashboard(initialValues);
             safetyStatusSection.classList.add('hidden'); 
             
@@ -1205,7 +1205,7 @@ const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
             // Muat tema sebelum memuat data
             loadTheme(); 
             
-            const initialValues = Array(16).fill(0.0);
+            const initialValues = Array(17).fill(0.0);
             updateDashboard(initialValues);
             
             // Muat grafik awal dari localStorage
