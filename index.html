@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Monitor BMS 3S</title>
-    <!-- Memuat Tailwind CSS untuk styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Menggunakan font Inter */
@@ -39,7 +38,7 @@
         .card-current { background-color: #fecaca; color: #b91c1c; } /* red-200 / red-800 */
         .card-power { background-color: #fffbeb; color: #b45309; } /* yellow-100 / amber-700 */
         .card-cap-rem { background-color: #e9d5ff; color: #6b21a8; } /* purple-200 / purple-800 */
-        .card-cap-used { background-color: #a7f3d0; color: #065f46; } /* teal-200 / teal-800 */
+        .card-cap-used { background-color: #a7f3d0; color: #065f46; } /* teal-2- / teal-800 */
         .card-delta { background-color: #fce7f3; color: #be185d; } /* pink-100 / pink-700 */
         
         /* Styling minimalis untuk koneksi */
@@ -60,9 +59,12 @@
 
         /* --- DARK MODE STYLES OVERRIDES: Menghilangkan semua latar putih di Dark Mode --- */
         
-        /* Background utama (body) dan background elemen yang lebih terang (bg-gray-50/100/200) */
-        /* Menggunakan gray-900 pada body (di HTML) dan gray-800/gray-700 untuk elemen dalamnya */
+        /* FIX: Aturan CSS Eksplisit untuk body di Dark Mode (untuk mengatasi masalah spesifisitas) */
+        body.dark {
+            background-color: #111827 !important; /* Hex untuk gray-900 (Tailwind) */
+        }
         
+        /* Background utama (body) dan background elemen yang lebih terang (bg-gray-50/100/200) */
         .dark .dashboard-card {
             background-color: #1f2937 !important; /* gray-800 */
             box-shadow: none; 
@@ -72,12 +74,18 @@
         /* Header dan elemen yang menggunakan bg-white di Light Mode */
         .dark .bg-white { background-color: #1f2937 !important; } /* gray-800 */
         
-        /* Background elemen yang lebih terang (misal: di sekitar chart) */
+        /* FIX: Background elemen yang lebih terang (di sekitar chart, detail sel default, dan kartu detail tambahan) */
         .dark .bg-gray-50, 
         .dark .bg-gray-100, 
         .dark .bg-gray-200 { 
             background-color: #374151 !important; /* gray-700, warna latar belakang yang lebih gelap dari card */
             color: #d1d5db !important; /* text-gray-300 */
+        }
+        
+        /* FIX: Override untuk background hijau Light Mode (Relay ON) */
+        .dark .bg-green-50 {
+            background-color: #064e3b !important; /* Emerald-900 */
+            color: #a7f3d0 !important; /* Emerald-300 */
         }
         
         /* Invert colors for dark mode cards (using darker background and lighter text) */
@@ -112,15 +120,10 @@
         .dark .bg-yellow-200 { background-color: #422006 !important; color: #fde68a !important; } /* Amber-900/Amber-300 */
         .dark .bg-green-100 { background-color: #064e3b !important; color: #a7f3d0 !important; } /* Emerald-900/Emerald-300 */
         .dark .border-red-400 { border-color: #b91c1c !important; }
+        .dark .border-yellow-400 { border-color: #b45309 !important; }
+        .dark .border-green-400 { border-color: #065f46 !important; }
     </style>
-    <!-- Memuat Font Awesome Icons -->
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-</head>
-<!-- 
-    BODY CLASS:
-    - Light Mode: bg-gray-50 (sangat terang, hampir putih)
-    - Dark Mode: dark:bg-gray-900 (abu-abu tua pekat) 
--->
+    </head>
 <body class="min-h-screen p-4 md:p-8 bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
     <script>
         // Konfigurasi Tailwind untuk mengaktifkan Dark Mode berdasarkan class="dark" pada body
@@ -137,94 +140,80 @@
         }
     </script>
     <div class="max-w-6xl mx-auto">
-        <!-- Minimalis: Bar Status & Koneksi + Pilihan Tema -->
         <header class="flex justify-between items-center mb-6 p-3 rounded-lg bg-white dark:bg-gray-800 shadow-md border-b">
             <div id="status-display" class="text-sm font-medium text-gray-600 dark:text-gray-400">
                 <span id="status-message">Menunggu Koneksi Bluetooth...</span>
                 <span id="device-info" class="text-xs text-gray-400 dark:text-gray-600 block italic"></span>
             </div>
             <div class="flex space-x-2">
-                <!-- Tombol Toggle Tema -->
-                <button id="theme-toggle" onclick="toggleTheme()" class="minimal-connect-btn bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 transition">
-                    <i id="theme-icon" class="fas fa-sun"></i>
+                <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 p-2 rounded-full flex items-center justify-center bg-gray-200 text-yellow-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-yellow-300 dark:hover:bg-gray-600 transition-all duration-300 shadow-md">
+                    <span id="theme-icon" class="text-xl transition-transform duration-300" role="img" aria-label="Dark/Light Mode Toggle"></span>
                 </button>
                 
                 <button id="connect-button" onclick="connectBluetooth()" class="minimal-connect-btn bg-primary text-white hover:bg-blue-600 transition disabled:opacity-50">
-                    <i class="fas fa-bluetooth-b"></i> Sambung
+                    <span class="mr-1 inline-block align-middle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle">
+                            <polyline points="6.5 6.5 17.5 17.5 12 23 12 1 17.5 6.5 6.5 17.5"/>
+                        </svg>
+                    </span>
+                    Sambung
                 </button>
                 <button id="disconnect-button" onclick="disconnectBluetooth()" class="minimal-connect-btn bg-gray-300 text-gray-700 hover:bg-gray-400 transition disabled:opacity-50 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500" disabled>
                     Putus
                 </button>
             </div>
         </header>
-        <!-- STATUS LOKAL: Diperbarui untuk LocalStorage -->
         <p id="firestore-status" class="text-xs text-center text-gray-500 dark:text-gray-400 mb-4">Status DB: Penyimpanan Lokal (localStorage) Aktif.</p>
 
-        <!-- Status Keselamatan -->
-        <section id="safety-status-section" class="status-box mb-6 hidden bg-green-100 text-green-600">
+        <section id="safety-status-section" class="status-box mb-6 hidden bg-green-100 text-green-600 border border-green-400">
             <h3 class="font-bold text-xl mb-1">Status Keselamatan: <span id="safety-status-text">Normal</span></h3>
             <p class="text-sm" id="safety-message">Semua parameter dalam batas aman.</p>
         </section>
         
-        <!-- Ringkasan Utama (SOC, SOH, Suhu) -->
         <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <!-- Kapasitas (SOC) -->
             <div class="dashboard-card p-5 border-b-4 border-green-500">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Kapasitas (SOC)</p>
                 <p id="soc-value" class="value-text text-green-600">0.0%</p>
                 <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2"><div id="soc-progress" class="h-full bg-green-500 rounded-full transition-all duration-500" style="width: 0%"></div></div>
-                <!-- Time Remaining -->
                 <p id="time-remaining" class="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-2">Waktu Sisa: Menghitung...</p>
             </div>
-            <!-- Kesehatan (SOH) -->
             <div class="dashboard-card p-5 border-b-4 border-yellow-500">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Kesehatan (SOH)</p>
                 <p id="soh-value" class="value-text text-yellow-600">0.0%</p>
                 <div class="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-2"><div id="soh-progress" class="h-full bg-yellow-500 rounded-full transition-all duration-500" style="width: 0%"></div></div>
             </div>
-            <!-- Suhu Maks -->
             <div class="dashboard-card p-5 border-b-4 border-red-500">
                 <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Suhu (Maks)</p>
                 <p id="temp-value" class="value-text text-red-600">0.0°C</p>
             </div>
         </section>
 
-        <!-- Parameter Kelistrikan Inti (6 Kartu) -->
         <section class="mb-8 p-6 dashboard-card">
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Parameter Kelistrikan Inti</h2>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <!-- 1. Tegangan Total (Index 0) -->
                 <div class="p-4 rounded-lg card-voltage">
                     <p class="text-sm font-semibold mb-1">Tegangan Total</p>
                     <p id="total-voltage" class="value-text">0.00 V</p>
-                    <!-- Tambahkan Min/Max di bawah Nilai Tegangan Total -->
                     <p id="min-max-voltage" class="text-xs font-medium mt-1">Min: 0.00 V | Max: 0.00 V</p>
                 </div>
-                <!-- 2. Arus (Index 5) -->
                 <div class="p-4 rounded-lg card-current">
                     <p class="text-sm font-semibold mb-1">Arus</p>
                     <p id="current-value" class="value-text">0.00 A</p>
-                    <!-- Tambahan Min/Max Arus -->
                     <p id="min-max-current" class="text-xs font-medium mt-1">Min: 0.00 A | Max: 0.00 A</p>
                 </div>
-                <!-- 3. Daya (Index 6) -->
                 <div class="p-4 rounded-lg card-power">
                     <p class="text-sm font-semibold mb-1">Daya</p>
                     <p id="power-value" class="value-text">0.00 W</p>
-                    <!-- Tambahan Min/Max Daya -->
                     <p id="min-max-power" class="text-xs font-medium mt-1">Min: 0.00 W | Max: 0.00 W</p>
                 </div>
-                <!-- 4. Kapasitas Tersisa (Index 11) -->
                 <div class="p-4 rounded-lg card-cap-rem">
                     <p class="text-sm font-semibold mb-1">Kapasitas Sisa</p>
                     <p id="remaining-capacity" class="value-text">0 Ah</p>
                 </div>
-                <!-- 5. Kapasitas Terpakai (Index 7) -->
                 <div class="p-4 rounded-lg card-cap-used">
                     <p class="text-sm font-semibold mb-1">Kapasitas Terpakai</p>
                     <p id="capacity-used-value" class="value-text">0 Ah</p>
                 </div>
-                <!-- 6. Delta V (Min/Max Sel Aktif) -->
                 <div class="p-4 rounded-lg card-delta">
                     <p class="text-sm font-semibold mb-1">DeltaV Sel Aktif</p>
                     <p id="delta-v-value" class="value-text">0 mV</p>
@@ -232,24 +221,20 @@
             </div>
         </section>
 
-        <!-- Grafik Akumulasi Wh (Sekarang Bar Chart) -->
         <section class="mb-8 p-6 dashboard-card">
-            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Total Energi (Wh) untuk Periode Aktif</h2>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Profil Energi (Wh) untuk Periode Aktif</h2>
             
-            <!-- Pilihan Periode -->
             <div class="flex flex-wrap justify-center space-x-2 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4">
                 <button id="period-1h" onclick="selectPeriod('1h')" class="period-button period-active">1 Jam</button>
                 <button id="period-6h" onclick="selectPeriod('6h')" class="period-button">6 Jam</button>
                 <button id="period-12h" onclick="selectPeriod('12h')" class="period-button">12 Jam</button>
                 <button id="period-24h" onclick="selectPeriod('24h')" class="period-button">24 Jam</button>
-                <button id="period-30d" onclick="selectPeriod('30d')" class="period-button">30 Hari</button>
+                <button id="period-7d" onclick="selectPeriod('7d')" class="period-button">7 Hari</button> <button id="period-30d" onclick="selectPeriod('30d')" class="period-button">30 Hari</button>
             </div>
 
-            <!-- Area Grafik -->
             <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <canvas id="whChart"></canvas>
                 <p id="chart-status" class="text-center text-sm text-gray-500 dark:text-gray-400 mt-2">Memuat data Wh dari penyimpanan lokal...</p>
-                <!-- Ringkasan Angka di bawah grafik Bar -->
                 <div class="flex flex-wrap justify-center space-x-8 text-sm mt-4 font-semibold">
                     <p class="text-green-600"><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-1"></span> Total Charge: <span id="total-charge-wh">0.000 Wh</span></p>
                     <p class="text-red-600"><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-1"></span> Total Discharge: <span id="total-discharge-wh">0.000 Wh</span></p>
@@ -258,26 +243,21 @@
         </section>
 
 
-        <!-- Detail Tegangan Sel (Semua 4 Sel ditampilkan) -->
         <section class="mb-8 p-6 dashboard-card">
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Detail Tegangan Sel (S1-S4)</h2>
             <div id="cell-voltage-detail" class="grid cell-grid gap-4">
-                <!-- Sel 1 (Index 1) -->
                 <div id="cell-1" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
                     <p class="text-sm font-medium">Sel 1</p>
                     <p class="text-xl font-bold text-gray-800">0.00 V</p>
                 </div>
-                <!-- Sel 2 (Index 2) -->
                 <div id="cell-2" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
                     <p class="text-sm font-medium">Sel 2</p>
                     <p class="text-xl font-bold text-gray-800">0.00 V</p>
                 </div>
-                <!-- Sel 3 (Index 3) -->
                 <div id="cell-3" class="p-3 text-center rounded-lg bg-gray-100 border border-gray-300">
                     <p class="text-sm font-medium">Sel 3</p>
                     <p class="text-xl font-bold text-gray-800">0.00 V</p>
                 </div>
-                <!-- Sel 4 (Index 4 - Ditampilkan 0V) -->
                 <div id="cell-4" class="p-3 text-center rounded-lg bg-gray-200 border border-gray-300">
                     <p class="text-sm font-medium">Sel 4</p>
                     <p class="text-xl font-bold text-gray-500">0.00 V</p>
@@ -287,15 +267,12 @@
             <p id="balancing-status" class="font-bold text-lg text-green-600 text-center mt-2">Status Balancing: Normal</p>
         </section>
 
-        <!-- Parameter Detail Tambahan -->
         <section class="p-6 dashboard-card">
             <h2 class="text-xl font-bold text-gray-900 dark:text-gray-50 mb-4 border-b pb-2">Parameter Detail Tambahan</h2>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4" id="extra-parameters">
-                <!-- Data detail tambahan diinjeksi di sini -->
-            </div>
+                </div>
         </section>
 
-        <!-- Error Box -->
         <div id="error-box" class="mt-8 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg hidden">
             <p class="font-bold text-lg">⚠️ Kesalahan Protokol/Koneksi/Parsing:</p>
             <p id="error-details" class="text-sm mt-1"></p>
@@ -319,6 +296,7 @@
         
         let whChart = null; // Instans Chart.js
         let lastLogTime = 0; // Untuk batasan logging 10 detik
+        const LOG_INTERVAL_MS = 10000; // Interval logging 10 detik
         const MAX_LOG_ENTRIES = 10000; // Batas untuk mencegah localStorage penuh
 
         // Variabel untuk melacak Min/Max
@@ -333,6 +311,18 @@
         const LOCAL_STORAGE_KEY = 'bms_power_logs';
         const THEME_KEY = 'bms_theme'; // Kunci untuk tema
 
+        // --- DEFINISI SVG ICONS OFFLINE ---
+        const SVG_ICONS = {
+            // Thermometer (Suhu)
+            THERMOMETER: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>',
+            // Heart (Kesehatan SOH)
+            HEART: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+            // Flash/Zap (Relay Pengisian) - Simbol petir untuk arus/listrik
+            FLASH: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+            // Flame (Relay Pengurasan) - Simbol api untuk panas/discharge
+            FLAME: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 15.5A2.5 2.5 0 0 0 17.5 13c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM8.5 8.5A2.5 2.5 0 0 0 11 6c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5zM15 9.5A2.5 2.5 0 0 0 17.5 7c0-1.25-.75-2-2-2-1.25 0-2 1-2 2s1.5 2.5 2.5 2.5z"/></svg>'
+        };
+
         // Pemetaan Index Data 
         const DATA_INDICES = {
             TOTAL_VOLTAGE: 0, CELL_1: 1, CELL_2: 2, CELL_3: 3, CELL_4: 4, 
@@ -343,7 +333,7 @@
             STATUS_CHARGE: 14, STATUS_DISCHARGE: 15, SOH: 16,
         };
 
-        // Definisi semua 16 data.
+        // Definisi semua 16 data, menggunakan 'iconKey' untuk merujuk ke SVG_ICONS
         const ALL_DATA_MAP = [
             // Dikecualikan dari 'Tambahan' (sudah di Ringkasan atau Inti)
             { label: 'Tegangan Total', unit: 'V', index: 0, showInExtra: false },
@@ -357,15 +347,26 @@
             { label: 'SOC (State of Charge)', unit: '%', index: 8, showInExtra: false },
             { label: 'Kapasitas Tersisa', unit: 'Ah', index: 11, showInExtra: false },
 
-            // Parameter Tambahan
-            { label: 'Suhu Sensor 1', unit: '°C', index: 9, showInExtra: true, icon: 'thermometer' },
-            { label: 'Suhu Sensor 2', unit: '°C', index: 10, showInExtra: true, icon: 'thermometer' },
-            { label: 'Kesehatan SOH 1', unit: '%', index: 12, showInExtra: true, icon: 'heart-pulse' },
-            { label: 'Kesehatan SOH 2', unit: '%', index: 13, showInExtra: true, icon: 'heart-pulse' },
-            { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, icon: 'plug' },
-            { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, icon: 'fire' },
-           // { label: 'SOH', unit: '%', index: 16, showInExtra: true },
+            // Parameter Tambahan (Menggunakan iconKey)
+            { label: 'Suhu Baterai', unit: '°C', index: 9, showInExtra: true, iconKey: 'THERMOMETER' }, 
+            { label: 'Suhu Sensor 2', unit: '°C', index: 10, showInExtra: true, iconKey: 'THERMOMETER' }, 
+            { label: 'Kesehatan Mosfet', unit: '%', index: 12, showInExtra: true, iconKey: 'HEART' },
+            { label: 'Kesehatan pengurasan', unit: '%', index: 13, showInExtra: true, iconKey: 'HEART' },
+            { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, iconKey: 'FLASH' },
+            { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, iconKey: 'FLAME' },
         ];
+        
+        // --- KONFIGURASI GRAFIK WH BARU ---
+        // Nilai dalam milidetik dan jumlah titik data
+        const PERIOD_CONFIG = { 
+            '1h': { durationMs: 3600 * 1000, points: 1, label: '1 Jam' }, 
+            '6h': { durationMs: 6 * 3600 * 1000, points: 6, label: '6 Jam' }, 
+            '12h': { durationMs: 12 * 3600 * 1000, points: 12, label: '12 Jam' }, 
+            '24h': { durationMs: 24 * 3600 * 1000, points: 24, label: '24 Jam' }, 
+            '7d': { durationMs: 7 * 24 * 3600 * 1000, points: 7, label: '7 Hari' }, // NEW
+            '30d': { durationMs: 30 * 24 * 3600 * 1000, points: 30, label: '30 Hari' } 
+        };
+        // --- END KONFIGURASI GRAFIK WH BARU ---
 
 
         // --- UI Elements ---
@@ -375,6 +376,9 @@
         const disconnectButton = document.getElementById('disconnect-button');
         const errorBox = document.getElementById('error-box');
         const errorDetails = document.getElementById('error-details');
+        
+        // Variabel untuk elemen ikon tema
+        const themeIcon = document.getElementById('theme-icon'); 
         
         const cellElements = [
             document.getElementById('cell-1'), 
@@ -405,7 +409,7 @@
         const chartStatusElement = document.getElementById('chart-status');
         const totalChargeWhElement = document.getElementById('total-charge-wh');
         const totalDischargeWhElement = document.getElementById('total-discharge-wh');
-        const themeIcon = document.getElementById('theme-icon');
+
         
         
 
@@ -503,9 +507,9 @@
                     updateDashboard(parsedValues);
                     logBMSData(parsedValues[DATA_INDICES.POWER]); // Log Power ke LocalStorage
                     
-                    // Refresh grafik setiap 10 detik
+                    // Refresh grafik setiap 10 detik (sesuai LOG_INTERVAL_MS)
                     const now = Date.now();
-                    if ((now - lastLogTime) >= 10000) { 
+                    if ((now - lastLogTime) >= LOG_INTERVAL_MS) { 
                         fetchAndRenderGraphs(selectedPeriod);
                         lastLogTime = now;
                     }
@@ -660,7 +664,7 @@
             
             // Gunakan interval 10 detik untuk menghemat storage
             const now = Date.now();
-            if (now - lastLogTime < 10000) { // 10 detik
+            if (now - lastLogTime < LOG_INTERVAL_MS) {
                  return;
             }
 
@@ -687,19 +691,8 @@
             }
         }
 
-        // --- Logic Grafik Wh (Diperbarui untuk LocalStorage) ---
+        // --- Logic Grafik Wh (Diperbarui untuk Agregasi) ---
         let selectedPeriod = '1h'; 
-        // Nilai dalam milidetik
-        const PERIOD_MAP_MS = { 
-            '1h': 3600 * 1000, 
-            '6h': 6 * 3600 * 1000, 
-            '12h': 12 * 3600 * 1000, 
-            '24h': 24 * 3600 * 1000, 
-            '30d': 30 * 24 * 3600 * 1000 
-        };
-        const PERIOD_LABEL_MAP = {
-            '1h': '1 Jam', '6h': '6 Jam', '12h': '12 Jam', '24h': '24 Jam', '30d': '30 Hari'
-        };
 
         function selectPeriod(period) {
             selectedPeriod = period;
@@ -711,11 +704,12 @@
                 const isDark = document.body.classList.contains('dark');
                 if (isDark) {
                     btn.classList.remove('bg-primary', 'text-white', 'shadow-md');
-                    btn.classList.add('bg-gray-800', 'text-gray-300', 'hover:bg-gray-700'); 
+                    // Menggunakan gray-700/800 agar sesuai dengan dark mode
+                    btn.classList.add('bg-gray-800', 'text-gray-300', 'hover:bg-gray-600'); 
                 } else {
-                     btn.classList.remove('bg-gray-800', 'text-gray-300', 'hover:bg-gray-700');
-                     btn.classList.remove('bg-primary', 'text-white', 'shadow-md'); // Hapus jika ada dari Dark Mode sebelumnya
-                     btn.classList.add('hover:bg-gray-200'); // Tambahkan kembali hover light mode
+                     btn.classList.remove('bg-gray-800', 'text-gray-300', 'hover:bg-gray-600');
+                     btn.classList.remove('bg-primary', 'text-white', 'shadow-md'); 
+                     btn.classList.add('hover:bg-gray-200'); 
                 }
             });
             const activeBtn = document.getElementById(`period-${period}`);
@@ -726,41 +720,112 @@
         }
 
         /**
-         * Mengubah log power_W menjadi data Akumulasi Charge Wh dan Discharge Wh dari waktu ke waktu.
-         * FUNGSI INI KINI HANYA MENGHITUNG TOTAL UNTUK GRAFIK BAR.
+         * Mengelompokkan log Power (W) ke dalam sejumlah titik (bins) untuk periode tertentu.
+         * Menghitung akumulasi Wh (Watt-jam) untuk setiap bin.
+         * @param {Array<Object>} logs - Array log { timestamp, power_W }.
+         * @param {number} durationMs - Total durasi periode dalam milidetik.
+         * @param {number} numPoints - Jumlah titik data (bins) yang diinginkan.
          */
-        function calculateAccumulatedEnergy(logs) {
-            if (logs.length === 0) return { totalChargeWh: 0, totalDischargeWh: 0 };
+        function aggregateEnergyData(logs, durationMs, numPoints) {
+            if (logs.length === 0 || numPoints === 0) {
+                return { 
+                    labels: Array(numPoints).fill('N/A'), 
+                    chargeData: Array(numPoints).fill(0), 
+                    dischargeData: Array(numPoints).fill(0),
+                    totalChargeWh: 0,
+                    totalDischargeWh: 0
+                };
+            }
 
-            const timeIntervalSeconds = 10; // Interval logging 10 detik
-            const timeIntervalHours = timeIntervalSeconds / 3600; 
+            // Tentukan ukuran setiap bin (interval waktu)
+            const binDurationMs = durationMs / numPoints;
+            const now = Date.now();
+            const startTime = now - durationMs;
+            
+            // Inisialisasi array untuk setiap bin
+            const chargeBins = Array(numPoints).fill(0);
+            const dischargeBins = Array(numPoints).fill(0);
+            const labels = [];
+            
+            let totalChargeWh = 0;
+            let totalDischargeWh = 0;
+            // Log interval 10 detik = 10 / 3600 jam
+            const timeIntervalHours = LOG_INTERVAL_MS / (1000 * 3600); 
 
-            let totalCharge = 0;
-            let totalDischarge = 0;
-
+            // 1. Agregasi data log ke dalam bin yang sesuai
             logs.forEach(log => {
-                const power = log.power_W;
-                const wh = Math.abs(power) * timeIntervalHours;
+                // Hanya proses log dalam periode yang diminta
+                if (log.timestamp >= startTime) {
+                    // Hitung indeks bin. Math.floor memastikan indeks antara 0 hingga numPoints-1
+                    let binIndex = Math.floor((log.timestamp - startTime) / binDurationMs);
 
-                if (power > 0.1) {
-                    totalCharge += wh;
-                } else if (power < -0.1) {
-                    totalDischarge += wh;
+                    // Batasi indeks agar tidak melebihi batas (misalnya jika ada log yang sedikit terlambat)
+                    if (binIndex >= numPoints) {
+                        binIndex = numPoints - 1;
+                    } else if (binIndex < 0) {
+                        return; // Abaikan
+                    }
+
+                    const power = log.power_W;
+                    const wh = Math.abs(power) * timeIntervalHours;
+
+                    if (power > 0.1) {
+                        chargeBins[binIndex] += wh;
+                        totalChargeWh += wh;
+                    } else if (power < -0.1) {
+                        // Discharge
+                        dischargeBins[binIndex] += wh; 
+                        totalDischargeWh += wh;
+                    }
                 }
             });
             
+            // 2. Buat label yang bermakna
+            for (let i = 0; i < numPoints; i++) {
+                const binStartMs = startTime + (i * binDurationMs);
+                const date = new Date(binStartMs);
+                
+                let label;
+                if (durationMs <= PERIOD_CONFIG['24h'].durationMs) {
+                    // Untuk jam dan sub-hari (1h, 6h, 12h, 24h)
+                    if (binDurationMs >= 3600 * 1000) { // Durasi bin 1 jam atau lebih
+                        const nextBinStartMs = startTime + ((i + 1) * binDurationMs);
+                        const nextDate = new Date(nextBinStartMs);
+                        // Tampilkan rentang waktu (misal 14:00 - 15:00)
+                        label = `${date.getHours().toString().padStart(2, '0')}:00 - ${nextDate.getHours().toString().padStart(2, '0')}:00`;
+                    } else {
+                        // Tampilkan jam:menit
+                        label = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                    }
+
+                } else {
+                    // Untuk hari (7d, 30d)
+                    // Tampilkan tanggal atau nama hari
+                    label = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                }
+                labels.push(label);
+            }
+            
             return { 
-                totalChargeWh: totalCharge, 
-                totalDischargeWh: totalDischarge
+                labels: labels, 
+                chargeData: chargeBins, 
+                // Discharge diplot sebagai nilai negatif di Chart.js untuk stacked bar chart
+                dischargeData: dischargeBins.map(d => -d), 
+                totalChargeWh: totalChargeWh,
+                totalDischargeWh: totalDischargeWh
             };
         }
 
         async function fetchAndRenderGraphs(period) {
             
-            chartStatusElement.textContent = `Memuat data Power ${PERIOD_LABEL_MAP[period]} dari penyimpanan lokal...`;
+            const config = PERIOD_CONFIG[period];
+            if (!config) return;
+
+            chartStatusElement.textContent = `Memuat data Power ${config.label} dari penyimpanan lokal...`;
 
             try {
-                const durationMs = PERIOD_MAP_MS[period];
+                const durationMs = config.durationMs;
+                const numPoints = config.points;
                 const startTime = Date.now() - durationMs;
                 
                 const allLogs = getLocalLogs();
@@ -768,15 +833,16 @@
                 // Filter log berdasarkan waktu
                 const filteredLogs = allLogs.filter(log => log.timestamp >= startTime);
                 
-                const energyData = calculateAccumulatedEnergy(filteredLogs);
+                // Panggil fungsi agregasi baru
+                const aggregatedData = aggregateEnergyData(filteredLogs, durationMs, numPoints);
                 
                 if (filteredLogs.length === 0) {
-                    chartStatusElement.textContent = `Tidak ada data Power yang dicatat dalam ${PERIOD_LABEL_MAP[period]}.`;
+                    chartStatusElement.textContent = `Tidak ada data Power yang dicatat dalam ${config.label}.`;
                 } else {
-                    chartStatusElement.textContent = `Data ${filteredLogs.length} titik Power dimuat (${PERIOD_LABEL_MAP[period]}).`;
+                    chartStatusElement.textContent = `Data ${filteredLogs.length} log, diagregasi menjadi ${numPoints} titik (${config.label}).`;
                 }
 
-                renderChart(energyData);
+                renderChart(aggregatedData, config.label); 
 
             } catch (error) {
                 console.error("Gagal mengambil/memproses data grafik Wh dari localStorage:", error);
@@ -794,6 +860,7 @@
             
             // Terapkan warna baru ke opsi chart
             whChart.options.plugins.title.color = textColor;
+            whChart.options.plugins.legend.labels.color = textColor; // Warna legend
             whChart.options.scales.x.ticks.color = textColor;
             whChart.options.scales.y.ticks.color = textColor;
             whChart.options.scales.y.title.color = textColor;
@@ -812,10 +879,12 @@
             
             if (isDark) {
                 body.classList.add('dark');
-                if (themeIcon) themeIcon.className = 'fas fa-moon'; // Tampilkan ikon bulan (untuk beralih ke Light)
+                // Mode Gelap AKTIF -> Tampilkan ikon Bulan (UNICODE)
+                if (themeIcon) themeIcon.textContent = '🌙'; 
             } else {
                 body.classList.remove('dark');
-                if (themeIcon) themeIcon.className = 'fas fa-sun'; // Tampilkan ikon matahari (untuk beralih ke Dark)
+                // Mode Terang AKTIF -> Tampilkan ikon Matahari (UNICODE)
+                if (themeIcon) themeIcon.textContent = '☀️'; 
             }
             
             // Perbarui warna chart agar sesuai dengan tema baru
@@ -839,24 +908,19 @@
             // Tentukan tema awal: Simpanan lokal > Preferensi sistem > Default (light)
             const initialDark = (savedTheme === 'dark') || (savedTheme === null && prefersDark);
             
-            // Perbarui ikon berdasarkan tema yang akan diterapkan
-            if (initialDark) {
-                 if (themeIcon) themeIcon.className = 'fas fa-moon'; 
-            } else {
-                 if (themeIcon) themeIcon.className = 'fas fa-sun'; 
-            }
+            // Ikon akan diatur oleh applyTheme(initialDark)
             
             applyTheme(initialDark);
         }
 
 
         /**
-         * MERENDER GRAFIK BATANG (BAR CHART) HANYA UNTUK TOTAL CHARGE DAN DISCHARGE.
+         * MERENDER GRAFIK BATANG (BAR CHART) UNTUK PROFIL CHARGE DAN DISCHARGE.
          */
-        function renderChart(data) {
+        function renderChart(data, periodLabel) { 
             const ctx = document.getElementById('whChart').getContext('2d');
             
-            // Update ringkasan angka
+            // Update ringkasan angka global
             totalChargeWhElement.textContent = `${data.totalChargeWh.toFixed(3)} Wh`;
             totalDischargeWhElement.textContent = `${data.totalDischargeWh.toFixed(3)} Wh`;
 
@@ -869,23 +933,23 @@
             const gridColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 
             whChart = new Chart(ctx, {
-                type: 'bar', // Menggunakan BAR chart
+                type: 'bar', 
                 data: {
-                    labels: ['Charge', 'Discharge'], // Label statis untuk bar chart
+                    labels: data.labels, // Menggunakan label dari fungsi agregasi
                     datasets: [
                         {
-                            label: 'Energi (Wh)',
-                            data: [data.totalChargeWh, data.totalDischargeWh], // Hanya dua data poin
-                            backgroundColor: [
-                                'rgba(16, 185, 129, 0.8)', // Hijau untuk Charge
-                                'rgba(239, 68, 68, 0.8)'   // Merah untuk Discharge
-                            ],
-                            borderColor: [
-                                'rgba(16, 185, 129, 1)',
-                                'rgba(239, 68, 68, 1)'
-                            ],
+                            label: 'Discharge (Wh)',
+                            data: data.dischargeData, // Nilai negatif untuk discharge
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)', // Merah
+                            borderColor: 'rgba(239, 68, 68, 1)',
                             borderWidth: 1,
-                            borderRadius: 8 // Membuat bar chart terlihat lebih modern
+                        },
+                        {
+                            label: 'Charge (Wh)',
+                            data: data.chargeData, // Nilai positif untuk charge
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)', // Hijau
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 1,
                         }
                     ]
                 },
@@ -894,27 +958,31 @@
                     maintainAspectRatio: true,
                     plugins: {
                         legend: {
-                            display: false 
+                            position: 'bottom', // Tampilkan legend
+                            labels: {
+                                color: textColor
+                            }
                         },
                         title: {
                             display: true,
-                            text: `Total Energi Akumulasi (${PERIOD_LABEL_MAP[selectedPeriod]})`,
+                            text: `Profil Energi Akumulasi (${periodLabel})`, 
                             font: { size: 16, weight: 'bold' },
                             color: textColor 
                         },
                         tooltip: {
                              callbacks: {
                                 label: function(context) {
-                                    return `${context.parsed.y.toFixed(3)} Wh`; 
+                                    const value = context.parsed.y;
+                                    // Tampilkan nilai absolut
+                                    const type = value >= 0 ? 'Charge' : 'Discharge';
+                                    return `${type}: ${Math.abs(value).toFixed(3)} Wh`; 
                                 },
-                                title: function(context) {
-                                    return context[0].label; 
-                                }
                              }
                         }
                     },
                     scales: {
                         x: {
+                            stacked: true, // Penting: Bar chart di-stack
                             grid: {
                                 display: false 
                             },
@@ -923,10 +991,10 @@
                             }
                         },
                         y: {
-                            beginAtZero: true,
+                            stacked: true, // Penting: Bar chart di-stack
                             title: {
                                 display: true,
-                                text: 'Total Energi (Wh)',
+                                text: 'Energi Bersih (Wh)',
                                 color: textColor 
                             },
                             grid: {
@@ -947,6 +1015,7 @@
 
         // --- Update Dashboard (Termasuk logic Min/Max baru) ---
         function updateDashboard(values) {
+            
             const currentTotalVoltage = values[DATA_INDICES.TOTAL_VOLTAGE];
             const currentCurrent = values[DATA_INDICES.CURRENT];
             const currentPower = values[DATA_INDICES.POWER];
@@ -1003,11 +1072,10 @@
 
                 cellElement.querySelector('.text-xl').textContent = `${voltage} V`;
 
-                // Cek apakah mode gelap aktif
                 const isDark = document.body.classList.contains('dark');
                 
-                let bgClass = 'bg-gray-100'; // Default light mode
-                let textColor = 'text-gray-800'; // Default light mode
+                let bgClass = 'bg-gray-100'; 
+                let textColor = 'text-gray-800'; 
                 
                 if (v > 4.2) { 
                     bgClass = 'bg-red-200'; 
@@ -1026,37 +1094,33 @@
                     textColor = 'text-gray-500'; 
                 }
                 
-                // Jika Dark Mode, gunakan warna yang lebih gelap
                 if (isDark) {
                     if (v > 4.2) { 
                         bgClass = 'bg-red-900'; 
                         textColor = 'text-red-400'; 
                     } 
                     else if (v > 3.8) { 
-                        bgClass = 'bg-green-900'; 
-                        textColor = 'text-green-400'; 
+                         bgClass = 'bg-green-100'; 
+                         textColor = 'text-green-300'; 
                     } 
                     else if (v < 3.0 && v > 1.0) { 
-                        bgClass = 'bg-yellow-900'; 
-                        textColor = 'text-yellow-400'; 
+                        bgClass = 'bg-yellow-100'; 
+                        textColor = 'text-yellow-300'; 
                     } 
                     else if (v <= 1.0) { 
                         bgClass = 'bg-gray-800'; 
                         textColor = 'text-gray-500'; 
                     } else {
-                        // Default aktif: Sel 1-3
                          bgClass = 'bg-gray-700'; 
                          textColor = 'text-gray-100';
                     }
                 }
                 
-                cellElement.className = `p-3 text-center rounded-lg border border-gray-300 ${bgClass} transition-colors duration-300`;
+                cellElement.className = `p-3 text-center rounded-lg border border-gray-300 transition-colors duration-300`;
+                cellElement.classList.add(bgClass);
+                cellElement.classList.add(isDark ? 'dark:border-gray-600' : 'border-gray-300'); 
+                
                 const cellVoltageText = cellElement.querySelector('.text-xl');
-                
-                // Hapus class border-gray-300 yang tidak konsisten di Dark Mode, ganti dengan yang di CSS global
-                cellElement.classList.remove('border-gray-300'); 
-                cellElement.classList.add('border-gray-600'); // Class ini akan di-override di CSS jika Dark Mode OFF
-                
                 cellVoltageText.className = 'text-xl font-bold transition-colors duration-300 ' + textColor;
             });
             
@@ -1068,21 +1132,16 @@
             const minVText = minCellV !== Infinity ? minCellV.toFixed(3) : '0.000';
             const maxVText = maxCellV !== -Infinity ? maxCellV.toFixed(3) : '0.000';
             summaryMinMaxElement.textContent = `Sel Aktif (Total: ${totalActiveCells}) | Min: ${minVText} V | Max: ${maxVText} V | DeltaV: ${deltaVText}`;
-            
+            // ... (Balancing status logic) ...
+
+
             // --- 3. Update Ringkasan Utama (SOC, SOH, Suhu, Time Remaining) ---
             const soc = Math.min(100, Math.max(0, values[DATA_INDICES.SOC].toFixed(2)));
-            // ✅ KOREKSI: Tambahkan validasi nilai
-let sohValue = values[DATA_INDICES.SOH];
-
-// Jika nilai tidak valid (undefined, null, atau NaN), ganti dengan 0.0
-if (sohValue === undefined || isNaN(sohValue) || sohValue === null) {
-    sohValue = 0.0;
-}
-
-// Gunakan nilai yang sudah divalidasi
-const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
-            
-           // const sohAvg = Math.min(100, Math.max(0, ((values[DATA_INDICES.SOH_1] + values[DATA_INDICES.SOH_2]) / 2).toFixed(2))); 
+            let sohValue = values[DATA_INDICES.SOH];
+            if (sohValue === undefined || isNaN(sohValue) || sohValue === null) {
+                sohValue = 0.0;
+            }
+            const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
             const maxTemp = Math.max(values[DATA_INDICES.TEMP_1], values[DATA_INDICES.TEMP_2]).toFixed(1);
             const remainingCap = values[DATA_INDICES.CAP_REMAINING];
             const current = values[DATA_INDICES.CURRENT];
@@ -1092,7 +1151,6 @@ const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
             sohValueElement.textContent = `${sohAvg}%`;
             sohProgressElement.style.width = `${sohAvg}%`;
             tempValueElement.textContent = `${maxTemp}°C`;
-            //SOH_3ValueElement.textContent = `${soh_3}%`;
 
             let timeRemainingText;
             if (current !== 0 && Math.abs(current) > 0.01) { 
@@ -1115,7 +1173,7 @@ const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
             capacityUsedElement.textContent = `${values[DATA_INDICES.CAP_USED].toFixed(2)} Ah`; 
             remainingCapacityElement.textContent = `${values[DATA_INDICES.CAP_REMAINING].toFixed(2)} Ah`;
             
-            // --- 5. Update Parameter Detail Tambahan ---
+            // --- 5. Update Parameter Detail Tambahan (Menggunakan SVG) ---
             let extraHtml = '';
             
             ALL_DATA_MAP.filter(d => d.showInExtra).forEach(dataInfo => {
@@ -1123,38 +1181,37 @@ const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
                 let formattedValue;
                 let displayUnit = dataInfo.unit;
                 let title = dataInfo.label;
-                let bgColor = document.body.classList.contains('dark') ? 'bg-gray-700' : 'bg-gray-50'; // Default
-                let icon = dataInfo.icon || 'circle-info';
-                let iconColor = 'text-primary';
+                let bgColor = document.body.classList.contains('dark') ? 'bg-gray-700' : 'bg-gray-50'; 
+                let symbolSvg = SVG_ICONS[dataInfo.iconKey]; // Ambil SVG berdasarkan kunci
+                let symbolColor = 'text-primary';
 
                 if (dataInfo.label.includes('Suhu')) {
                     formattedValue = value.toFixed(1);
-                    iconColor = 'text-orange-500';
-                } else if (dataInfo.label.includes('Kesehatan')) {
+                    symbolColor = 'text-orange-500';
+                } else if (dataInfo.label.includes('Kesehatan') || dataInfo.label === 'SOH') {
                     formattedValue = value.toFixed(2);
-                    iconColor = 'text-yellow-500';
+                    symbolColor = 'text-red-500';
                 } else if (dataInfo.label.includes('Relay')) {
                     formattedValue = (value === 1.0) ? 'AKTIF' : 'NONAKTIF';
                     displayUnit = '';
-                    iconColor = (value === 1.0) ? 'text-accent' : 'text-gray-400';
-                    // Sesuaikan latar belakang relay saat AKTIF
+                    symbolColor = (value === 1.0) ? 'text-accent' : 'text-gray-400';
                     if (value === 1.0) {
-                        bgColor = document.body.classList.contains('dark') ? 'bg-green-950' : 'bg-green-50';
+                        bgColor = 'bg-green-50'; 
                     } else {
-                        // NONAKTIF
                         bgColor = document.body.classList.contains('dark') ? 'bg-gray-700' : 'bg-gray-50';
                     }
                 } else {
                     formattedValue = value.toFixed(2);
                 }
                 
-                // Gunakan classList untuk manipulasi yang lebih aman
                 const cardBg = document.body.classList.contains('dark') ? 'bg-gray-800' : 'bg-white';
                 
                 extraHtml += `
                     <div class="p-4 rounded-lg border border-gray-300 ${bgColor} dark:border-gray-600">
                         <div class="flex items-center space-x-2 mb-1">
-                            <i class="fas fa-${icon} text-md ${iconColor}"></i>
+                            <span class="w-5 h-5 ${symbolColor}">
+                                ${symbolSvg}
+                            </span>
                             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">${title}</p>
                         </div>
                         <p class="text-xl font-bold text-gray-800 dark:text-gray-100">${formattedValue} <span class="text-base font-normal text-gray-400 dark:text-gray-500">${displayUnit}</span></p>
@@ -1167,34 +1224,32 @@ const sohAvg = Math.min(100, Math.max(0, sohValue.toFixed(2)));
 
             // --- 6. Update Status Keselamatan ---
             let safetyMsg = "Semua parameter dalam batas aman.";
-            let safetyClass = 'bg-green-100 text-green-600'; // Light Mode Default
+            let safetyClass = 'bg-green-100 text-green-600 border-green-400'; 
             let statusText = 'Normal';
 
             if (maxTemp > 50) {
                  safetyMsg = "PERINGATAN: Suhu Tinggi Terdeteksi! Melebihi 50°C.";
-                 safetyClass = 'bg-red-200 text-red-700';
+                 safetyClass = 'bg-red-100 text-red-700 border-red-400';
                  statusText = 'Bahaya!';
             } else if (deltaV > 150) {
                  safetyMsg = "PERINGATAN: Delta Voltage Sangat Tinggi! Balancing diperlukan.";
-                 safetyClass = 'bg-yellow-200 text-yellow-700';
+                 safetyClass = 'bg-yellow-200 text-yellow-700 border-yellow-400';
                  statusText = 'Peringatan!';
             }
             
-            // Terapkan penyesuaian Dark Mode untuk kelas keamanan di JS (untuk konsistensi)
+            // Logic Dark Mode untuk Status Keselamatan
             if (document.body.classList.contains('dark')) {
                 if (statusText === 'Bahaya!') {
-                    safetyClass = 'bg-red-900 border-red-400 text-red-300'; // Menggunakan warna Dark Mode yang sudah didefinisikan di CSS
+                    safetyClass = 'bg-red-900 border-red-400 text-red-300';
                 } else if (statusText === 'Peringatan!') {
                     safetyClass = 'bg-yellow-900 border-yellow-400 text-yellow-300';
                 } else {
                     safetyClass = 'bg-green-900 border-green-400 text-green-300';
                 }
-            } else {
-                safetyClass = safetyClass.replace('bg-green-100', 'bg-green-100 border-green-400').replace('bg-red-200', 'bg-red-200 border-red-400').replace('bg-yellow-200', 'bg-yellow-200 border-yellow-400');
             }
             
-            safetyStatusSection.className = `status-box mb-6 ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
-            safetyStatusSection.classList.remove('hidden'); // Selalu hapus hidden saat update, agar status muncul
+            safetyStatusSection.className = `status-box mb-6 border ${safetyClass} ${safetyStatusSection.classList.contains('hidden') ? 'hidden' : ''}`;
+            safetyStatusSection.classList.remove('hidden'); 
             safetyStatusText.textContent = statusText;
             safetyMessage.textContent = safetyMsg;
             
