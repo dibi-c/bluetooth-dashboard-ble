@@ -947,6 +947,9 @@
 
         // --- Update Dashboard (Termasuk logic Min/Max baru) ---
         function updateDashboard(values) {
+            // Di awal fungsi updateDashboard(values)
+console.log("Panjang Array Data:", values.length);
+console.log("Nilai SOH (Indeks 16):", values[DATA_INDICES.SOH]);
             const currentTotalVoltage = values[DATA_INDICES.TOTAL_VOLTAGE];
             const currentCurrent = values[DATA_INDICES.CURRENT];
             const currentPower = values[DATA_INDICES.POWER];
