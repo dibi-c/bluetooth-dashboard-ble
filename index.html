@@ -364,7 +364,7 @@
             { label: 'Kesehatan SOH 2', unit: '%', index: 13, showInExtra: true, icon: 'heart-pulse' },
             { label: 'Relay Pengisian', unit: '', index: 14, showInExtra: true, icon: 'plug' },
             { label: 'Relay Pengurasan', unit: '', index: 15, showInExtra: true, icon: 'fire' },
-            { label: 'SOH 3', unit: '%', index: 16, showInExtra: false},
+            { label: 'SOH 3', unit: '%', index: 16, showInExtra: true},
         ];
 
 
@@ -406,7 +406,7 @@
         const totalChargeWhElement = document.getElementById('total-charge-wh');
         const totalDischargeWhElement = document.getElementById('total-discharge-wh');
         const themeIcon = document.getElementById('theme-icon');
-        const SOH_3ValueElement = document.getElementById('soh_3-value');
+        //const SOH_3ValueElement = document.getElementById('soh_3-value');
         
 
         // --- Utility Functions (formatTime, calculateChecksum, parseData, sendRequest, handleNotifications, onDisconnected) ---
@@ -1082,7 +1082,7 @@
             sohValueElement.textContent = `${sohAvg}%`;
             sohProgressElement.style.width = `${sohAvg}%`;
             tempValueElement.textContent = `${maxTemp}°C`;
-            SOH_3ValueElement.textContent = `${soh_3}%`;
+            //SOH_3ValueElement.textContent = `${soh_3}%`;
 
             let timeRemainingText;
             if (current !== 0 && Math.abs(current) > 0.01) { 
