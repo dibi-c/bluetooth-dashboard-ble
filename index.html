@@ -426,23 +426,57 @@
         
 
         // --- Utility Functions (formatTime, calculateChecksum, parseData, sendRequest, handleNotifications, onDisconnected) ---
-        function formatTime(hours) {
-            if (hours === Infinity || hours === 0) return "N/A";
+        
 
-            const totalSeconds = Math.round(hours * 3600);
-            const h = Math.floor(totalSeconds / 3600);
-            const m = Math.floor((totalSeconds % 3600) / 60);
-            
-            let result = "";
-            if (h > 0) {
-                result += `${h}j `;
-            }
-            if (m > 0 || h === 0) {
-                 result += `${m}m`;
-            }
-            
-            return result.trim() || "<1m";
+/**
+ * Memformat waktu dalam satuan jam menjadi string "Hj Mm Ss" atau "N/A".
+ * @param {number} hours - Waktu dalam jam (misalnya 1.5 untuk 1 jam 30 menit).
+ * @returns {string} String waktu yang diformat.
+ */
+function formatTime(hours) {
+    // Menangani nilai tidak valid atau nol
+    if (!isFinite(hours) || hours <= 0) {
+        return "N/A";
+    }
+
+    // Mengubah jam ke total detik
+    const totalSeconds = hours * 3600;
+
+    // Memastikan totalSeconds adalah bilangan bulat terdekat (opsional, tapi disarankan)
+    const roundedSeconds = Math.round(totalSeconds);
+
+    const h = Math.floor(roundedSeconds / 3600);
+    const m = Math.floor((roundedSeconds % 3600) / 60);
+    const s = roundedSeconds % 60;
+
+    let result = "";
+
+    // Tambahkan Jam jika lebih dari 0
+    if (h > 0) {
+        result += `${h}j `;
+    }
+
+    // Tambahkan Menit jika lebih dari 0 ATAU jika Jam = 0
+    if (m > 0 || h > 0) {
+        result += `${m}m `;
+    }
+
+    // Tambahkan Detik (selalu ditambahkan jika waktu total > 0 dan kurang dari 1 jam)
+    // Atau jika Jam dan Menit nol, Detik harus ditampilkan (misal: "30s").
+    if (s > 0 || (h === 0 && m === 0)) {
+        // Hanya tampilkan jika waktu > 0
+        if (roundedSeconds > 0) {
+            result += `${s}s`;
         }
+    }
+    
+    // Jika hasilnya kosong (misalnya, totalSeconds sangat kecil dan dibulatkan menjadi 0), 
+    // kembalikan kurang dari 1 detik.
+    return result.trim() || "<1s";
+}
+
+
+        
         function calculateChecksum(dataView) {
             let checksum = 0;
             for (let i = 1; i <= 68; i++) {
@@ -1185,28 +1219,47 @@ function renderEnergyCharts(data, periodLabel) {
             sohProgressElement.style.width = `${sohAvg}%`;
             tempValueElement.textContent = `${maxTemp}°C`;
 
-            const remainingCap = values[DATA_INDICES.CAP_USED]; // Kapasitas Tersisa (V_rem)
-            const fullCap = values[DATA_INDICES.CAP_MAX]; // Kapasitas Penuh (Asumsi: V_full)
-            const current = values[DATA_INDICES.CURRENT]; // Arus (A)
-            const remTTF  = fullCap - remainingCap;
+      
            
 
 
 
+// --- Logika Perhitungan Waktu Sisa ---
+
+const remainingCap = values[DATA_INDICES.CAP_USED]; // Kapasitas Tersisa (Ah)
+const fullCap = values[DATA_INDICES.CAP_MAX];       // Kapasitas Penuh (Ah)
+const current = values[DATA_INDICES.CURRENT];       // Arus (A)
+const capToFull = fullCap - remainingCap;           // Kapasitas yang diperlukan untuk penuh (Ah)
+
 let timeRemainingText;
-if (current !== 0 && Math.abs(current) > 0.1) { 
-    if (current > 0) {
-        // CHARGE (TTF): (Kapasitas Penuh - Kapasitas Sisa) / Arus Charge
-        const hours = remTTF / current;
-        timeRemainingText = formatTime(hours) + " (TTF)"; 
-    } else  {
-        // DISCHARGE (TTE): Kapasitas Sisa / Arus Discharge
-        const hours = remainingCap / Math.abs(current);
-        timeRemainingText = formatTime(hours) + " (TTE)"; 
-    }
-} else {
+
+// Kasus Arus Nol atau Sangat Kecil
+if (current === 0 || Math.abs(current) < 0.1) {
     timeRemainingText = "Diam";
+} 
+// Kasus Pengisian (Charging)
+else if (current > 0) {
+    // Cek kondisi penuh untuk TTF
+    if (remainingCap >= fullCap) {
+        timeRemainingText = "Penuh (TTF)";
+    } else {
+        // CHARGE (TTF): (Kapasitas Penuh - Kapasitas Sisa) / Arus Charge (Jam)
+        const hours = capToFull / current;
+        timeRemainingText = formatTime(hours) + " (TTF)";
+    }
+} 
+// Kasus Pengosongan (Discharging)
+else {
+    // Cek kondisi habis untuk TTE
+    if (remainingCap <= 0) {
+        timeRemainingText = "Habis (TTE)";
+    } else {
+        // DISCHARGE (TTE): Kapasitas Sisa / Nilai Absolut Arus Discharge (Jam)
+        const hours = remainingCap / Math.abs(current);
+        timeRemainingText = formatTime(hours) + " (TTE)";
+    }
 }
+
 timeRemainingElement.textContent = `Waktu Sisa: ${timeRemainingText}`;
 
 
